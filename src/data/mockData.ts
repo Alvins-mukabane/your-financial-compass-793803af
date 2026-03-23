@@ -236,3 +236,6 @@ User Financial Profile:
 - Recent patterns: Spending on food is 28% above 3-month average. Transport costs are stable. Entertainment spending is low this month.
 - Predicted end-of-month balance: $13,210
 `;
+
+export const formatCurrency = (n: number) =>
+  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(n);
