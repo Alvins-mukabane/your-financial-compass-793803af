@@ -60,9 +60,10 @@ export default function Settings() {
         first_name: form.firstName,
         last_name: form.lastName,
         country: form.country,
+        user_type: form.userType,
         updates_opt_in: form.updatesOptIn,
         updated_at: new Date().toISOString(),
-      })
+      } as any)
       .eq("id", user.id);
     setSaving(false);
     if (error) {
