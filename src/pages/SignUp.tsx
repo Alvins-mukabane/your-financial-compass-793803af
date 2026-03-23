@@ -40,6 +40,7 @@ export default function SignUp() {
     email: "",
     password: "",
     confirmPassword: "",
+    userType: "" as "personal" | "enterprise" | "",
     termsAccepted: false,
     privacyAccepted: false,
     updatesOptIn: false,
