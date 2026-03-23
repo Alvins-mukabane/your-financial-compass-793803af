@@ -8,7 +8,8 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
-import { User, Save, Loader2 } from "lucide-react";
+import { User, Building2, Save, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const COUNTRIES = [
   "United States", "United Kingdom", "Canada", "Australia", "Germany", "France",
@@ -26,6 +27,7 @@ export default function Settings() {
     firstName: "",
     lastName: "",
     country: "",
+    userType: "personal",
     updatesOptIn: false,
   });
 
@@ -42,6 +44,7 @@ export default function Settings() {
             firstName: data.first_name,
             lastName: data.last_name,
             country: data.country,
+            userType: (data as any).user_type || "personal",
             updatesOptIn: data.updates_opt_in,
           });
         }
@@ -58,9 +61,10 @@ export default function Settings() {
         first_name: form.firstName,
         last_name: form.lastName,
         country: form.country,
+        user_type: form.userType,
         updates_opt_in: form.updatesOptIn,
         updated_at: new Date().toISOString(),
-      })
+      } as any)
       .eq("id", user.id);
     setSaving(false);
     if (error) {
@@ -136,6 +140,37 @@ export default function Settings() {
           </Select>
         </div>
 
+        <div className="space-y-1.5">
+          <Label className="text-xs">Account type</Label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setForm((p) => ({ ...p, userType: "personal" }))}
+              className={cn(
+                "flex flex-col items-center gap-2 p-3 rounded-lg border transition-colors",
+                form.userType === "personal"
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:border-primary/30"
+              )}
+            >
+              <User className="w-4 h-4" />
+              <span className="text-xs font-medium">Personal</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setForm((p) => ({ ...p, userType: "enterprise" }))}
+              className={cn(
+                "flex flex-col items-center gap-2 p-3 rounded-lg border transition-colors",
+                form.userType === "enterprise"
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:border-primary/30"
+              )}
+            >
+              <Building2 className="w-4 h-4" />
+              <span className="text-xs font-medium">Enterprise</span>
+            </button>
+          </div>
+        </div>
         <div className="flex items-center justify-between pt-2">
           <div>
             <p className="text-sm font-medium text-foreground">Email updates</p>

@@ -7,10 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Eye, EyeOff, Check, X } from "lucide-react";
+import { Eye, EyeOff, Check, X, User, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import FAQSection from "@/components/FAQSection";
+import { signUpFAQs } from "@/data/faqData";
 
 const COUNTRIES = [
   "United States", "United Kingdom", "Canada", "Australia", "Germany", "France",
@@ -40,6 +42,7 @@ export default function SignUp() {
     email: "",
     password: "",
     confirmPassword: "",
+    userType: "" as "personal" | "enterprise" | "",
     termsAccepted: false,
     privacyAccepted: false,
     updatesOptIn: false,
@@ -53,6 +56,7 @@ export default function SignUp() {
     form.firstName.trim() &&
     form.lastName.trim() &&
     form.country &&
+    form.userType &&
     isValidEmail &&
     allPasswordRulesMet &&
     passwordsMatch &&
@@ -72,6 +76,7 @@ export default function SignUp() {
             first_name: form.firstName,
             last_name: form.lastName,
             country: form.country,
+            user_type: form.userType,
             updates_opt_in: form.updatesOptIn,
           },
         },
@@ -155,6 +160,38 @@ export default function SignUp() {
           </div>
 
           <div className="space-y-4">
+            {/* User Type */}
+            <div className="space-y-1.5">
+              <Label className="text-xs">Account type</Label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => update("userType", "personal")}
+                  className={cn(
+                    "flex flex-col items-center gap-2 p-4 rounded-lg border transition-colors",
+                    form.userType === "personal"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:border-primary/30"
+                  )}
+                >
+                  <User className="w-5 h-5" />
+                  <span className="text-xs font-medium">Personal</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => update("userType", "enterprise")}
+                  className={cn(
+                    "flex flex-col items-center gap-2 p-4 rounded-lg border transition-colors",
+                    form.userType === "enterprise"
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border text-muted-foreground hover:border-primary/30"
+                  )}
+                >
+                  <Building2 className="w-5 h-5" />
+                  <span className="text-xs font-medium">Enterprise</span>
+                </button>
+              </div>
+            </div>
             {/* Name */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
@@ -340,6 +377,12 @@ export default function SignUp() {
             Already have an account?{" "}
             <Link to="/signin" className="text-primary hover:underline">Sign in</Link>
           </p>
+        </div>
+
+        {/* FAQs */}
+        <div className="mt-8">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 text-center">Frequently Asked Questions</h2>
+          <FAQSection faqs={signUpFAQs} />
         </div>
       </motion.div>
     </div>
