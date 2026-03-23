@@ -140,7 +140,37 @@ export default function Settings() {
           </Select>
         </div>
 
-        <div className="flex items-center justify-between pt-2">
+        <div className="space-y-1.5">
+          <Label className="text-xs">Account type</Label>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setForm((p) => ({ ...p, userType: "personal" }))}
+              className={cn(
+                "flex flex-col items-center gap-2 p-3 rounded-lg border transition-colors",
+                form.userType === "personal"
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:border-primary/30"
+              )}
+            >
+              <User className="w-4 h-4" />
+              <span className="text-xs font-medium">Personal</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setForm((p) => ({ ...p, userType: "enterprise" }))}
+              className={cn(
+                "flex flex-col items-center gap-2 p-3 rounded-lg border transition-colors",
+                form.userType === "enterprise"
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border text-muted-foreground hover:border-primary/30"
+              )}
+            >
+              <Building2 className="w-4 h-4" />
+              <span className="text-xs font-medium">Enterprise</span>
+            </button>
+          </div>
+        </div>
           <div>
             <p className="text-sm font-medium text-foreground">Email updates</p>
             <p className="text-xs text-muted-foreground">Receive tips and product news</p>
