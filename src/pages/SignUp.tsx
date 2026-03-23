@@ -74,6 +74,7 @@ export default function SignUp() {
             first_name: form.firstName,
             last_name: form.lastName,
             country: form.country,
+            user_type: form.userType,
             updates_opt_in: form.updatesOptIn,
           },
         },
