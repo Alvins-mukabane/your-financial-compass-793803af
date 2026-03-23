@@ -142,6 +142,12 @@ export default function SignIn() {
             <Link to="/signup" className="text-primary hover:underline">Sign up</Link>
           </p>
         </div>
+
+        {/* FAQs */}
+        <div className="mt-8">
+          <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4 text-center">Frequently Asked Questions</h2>
+          <FAQSection faqs={signInFAQs} />
+        </div>
       </motion.div>
     </div>
   );
