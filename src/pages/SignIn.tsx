@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label";
 import { Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
+import FAQSection from "@/components/FAQSection";
+import { signInFAQs } from "@/data/faqData";
 
 export default function SignIn() {
   const navigate = useNavigate();
