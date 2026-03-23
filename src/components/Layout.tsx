@@ -1,11 +1,36 @@
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { LayoutDashboard, MessageSquare, ArrowLeftRight, Target } from "lucide-react";
+import {
+  LayoutDashboard, MessageSquare, ArrowLeftRight, Target,
+  FileText, HelpCircle, MessageCircle, Settings, LogOut, Menu, ChevronDown,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/hooks/useAuth";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-const tabs = [
-  { path: "/", label: "Dashboard", icon: LayoutDashboard },
+const mainTabs = [
+  { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+];
+
+const menuItems = [
+  { path: "/chat", label: "AI Advisor", icon: MessageSquare },
+  { path: "/transactions", label: "Transactions", icon: ArrowLeftRight },
+  { path: "/financial-statement", label: "Financial Statement", icon: FileText },
+  { path: "/goals", label: "Goals", icon: Target },
+  { path: "/help", label: "Help & Support", icon: HelpCircle },
+  { path: "/feedback", label: "Feedback", icon: MessageCircle },
+  { path: "/settings", label: "Settings", icon: Settings },
+];
+
+const allTabs = [
+  { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { path: "/chat", label: "Advisor", icon: MessageSquare },
   { path: "/transactions", label: "Activity", icon: ArrowLeftRight },
   { path: "/goals", label: "Goals", icon: Target },
@@ -14,7 +39,13 @@ const tabs = [
 export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { signOut } = useAuth();
   const activePath = location.pathname;
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/signin");
+  };
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -27,22 +58,44 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <span className="font-semibold text-foreground tracking-tight text-[15px]">FinanceAI</span>
         </div>
 
-        <nav className="flex flex-col gap-0.5">
-          {tabs.map((tab) => {
-            const isActive = activePath === tab.path;
+        <nav className="flex flex-col gap-0.5 flex-1">
+          {/* Dashboard */}
+          <button
+            onClick={() => navigate("/dashboard")}
+            className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors relative",
+              activePath === "/dashboard"
+                ? "text-primary bg-primary/12"
+                : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+            )}
+          >
+            <LayoutDashboard className="w-[18px] h-[18px]" />
+            Dashboard
+            {activePath === "/dashboard" && (
+              <motion.div
+                layoutId="sidebar-active"
+                className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-primary"
+                transition={{ type: "spring", stiffness: 380, damping: 30 }}
+              />
+            )}
+          </button>
+
+          {/* Menu items */}
+          {menuItems.map((item) => {
+            const isActive = activePath === item.path;
             return (
               <button
-                key={tab.path}
-                onClick={() => navigate(tab.path)}
+                key={item.path}
+                onClick={() => navigate(item.path)}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors relative",
                   isActive
-                    ? "text-primary-foreground bg-primary/12 text-primary"
+                    ? "text-primary bg-primary/12"
                     : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                 )}
               >
-                <tab.icon className="w-[18px] h-[18px]" />
-                {tab.label}
+                <item.icon className="w-[18px] h-[18px]" />
+                {item.label}
                 {isActive && (
                   <motion.div
                     layoutId="sidebar-active"
@@ -54,6 +107,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
+
+        {/* Sign out at bottom */}
+        <button
+          onClick={handleSignOut}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors mt-auto"
+        >
+          <LogOut className="w-[18px] h-[18px]" />
+          Sign out
+        </button>
       </aside>
 
       {/* Main content */}
@@ -61,10 +123,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         {children}
       </main>
 
-      {/* Mobile bottom tabs */}
+      {/* Mobile bottom tabs with dropdown */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-sm border-t border-border z-50">
         <div className="flex items-center justify-around h-16 px-2">
-          {tabs.map((tab) => {
+          {allTabs.map((tab) => {
             const isActive = activePath === tab.path;
             return (
               <button
@@ -87,6 +149,34 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </button>
             );
           })}
+
+          {/* More menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex flex-col items-center gap-1 px-3 py-1.5 rounded-lg text-muted-foreground">
+                <Menu className="w-5 h-5" />
+                <span className="text-[10px] font-medium">More</span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" side="top" className="w-48 mb-2">
+              <DropdownMenuItem onClick={() => navigate("/financial-statement")}>
+                <FileText className="w-4 h-4 mr-2" /> Financial Statement
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/help")}>
+                <HelpCircle className="w-4 h-4 mr-2" /> Help & Support
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/feedback")}>
+                <MessageCircle className="w-4 h-4 mr-2" /> Feedback
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/settings")}>
+                <Settings className="w-4 h-4 mr-2" /> Settings
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleSignOut} className="text-destructive focus:text-destructive">
+                <LogOut className="w-4 h-4 mr-2" /> Sign out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </nav>
     </div>
