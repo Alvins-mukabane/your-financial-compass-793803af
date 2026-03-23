@@ -171,6 +171,7 @@ export default function Settings() {
             </button>
           </div>
         </div>
+        <div className="flex items-center justify-between pt-2">
           <div>
             <p className="text-sm font-medium text-foreground">Email updates</p>
             <p className="text-xs text-muted-foreground">Receive tips and product news</p>
