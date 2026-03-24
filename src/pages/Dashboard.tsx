@@ -4,6 +4,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, AreaChart, Area, XAxis, YAxis
 import { TrendingUp, TrendingDown, Wallet, PiggyBank, ArrowRight, AlertTriangle, CheckCircle, Info, Users, Building2 } from "lucide-react";
 import HealthScoreGauge from "@/components/HealthScoreGauge";
 import EbooksSection from "@/components/EbooksSection";
+import {
   totalBalance, monthlyIncome, monthlyExpenses, savingsRate, healthScore,
   categoryBreakdown, monthlyTrend, smartAlerts, CATEGORY_COLORS, type TransactionCategory,
 } from "@/data/mockData";
