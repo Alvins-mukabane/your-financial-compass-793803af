@@ -152,8 +152,7 @@ export default function Dashboard() {
                   cy="50%"
                   innerRadius={40}
                   outerRadius={65}
-                  strokeWidth={2}
-                  stroke="hsl(225 12% 11%)"
+                   stroke="hsl(var(--card))"
                 >
                   {categoryBreakdown.map((entry) => (
                     <Cell
