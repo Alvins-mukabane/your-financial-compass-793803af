@@ -1,0 +1,172 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+const SYSTEM_PROMPT = `You are FinanceAI, a financial statement generator. Based on the user's financial data, generate a comprehensive monthly financial statement in the style of the CASHFLOW board game by Robert Kiyosaki.
+
+User's Financial Data:
+- Monthly Salary Income: ~$7,700 (two paychecks)
+- Freelance Income: ~$600/month average
+- Total Monthly Income: ~$8,300
+- Monthly Expenses breakdown: Food & Dining (~$280), Transport (~$120), Entertainment (~$60), Shopping (~$200), Bills & Utilities (~$2,800), Health (~$80), Education (~$35)
+- Total Monthly Expenses: ~$5,800
+- Total Balance/Cash: $14,847
+- Savings Rate: ~30%
+- Active goals: Emergency Fund ($9,600/$15,000), New Laptop ($1,408/$2,200), Vacation ($1,750/$5,000), Investment Portfolio ($3,200/$10,000)
+
+Generate realistic but educational financial data that teaches about assets generating income vs liabilities creating expenses, following Rich Dad principles.`;
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          { role: "user", content: "Generate my monthly CASHFLOW financial statement with realistic data based on my profile. Include income sources, expense items, assets with cash flow, and liabilities with payments." },
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "generate_financial_statement",
+              description: "Generate a CASHFLOW-style financial statement with income, expenses, assets, and liabilities",
+              parameters: {
+                type: "object",
+                properties: {
+                  income: {
+                    type: "object",
+                    properties: {
+                      salary: { type: "number" },
+                      items: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            name: { type: "string" },
+                            amount: { type: "number" },
+                            description: { type: "string" },
+                          },
+                          required: ["name", "amount"],
+                          additionalProperties: false,
+                        },
+                      },
+                    },
+                    required: ["salary", "items"],
+                    additionalProperties: false,
+                  },
+                  expenses: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        name: { type: "string" },
+                        amount: { type: "number" },
+                        category: { type: "string", enum: ["tax", "housing", "transport", "food", "utilities", "insurance", "entertainment", "debt", "other"] },
+                      },
+                      required: ["name", "amount", "category"],
+                      additionalProperties: false,
+                    },
+                  },
+                  assets: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        name: { type: "string" },
+                        type: { type: "string", enum: ["stock", "real_estate", "business", "savings", "bond", "other"] },
+                        value: { type: "number" },
+                        cashflow: { type: "number" },
+                        description: { type: "string" },
+                      },
+                      required: ["name", "type", "value", "cashflow"],
+                      additionalProperties: false,
+                    },
+                  },
+                  liabilities: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        name: { type: "string" },
+                        type: { type: "string", enum: ["mortgage", "car_loan", "credit_card", "student_loan", "personal_loan", "other"] },
+                        balance: { type: "number" },
+                        payment: { type: "number" },
+                        description: { type: "string" },
+                      },
+                      required: ["name", "type", "balance", "payment"],
+                      additionalProperties: false,
+                    },
+                  },
+                  passive_income: { type: "number" },
+                  total_income: { type: "number" },
+                  total_expenses: { type: "number" },
+                  monthly_cashflow: { type: "number" },
+                  summary: { type: "string" },
+                },
+                required: ["income", "expenses", "assets", "liabilities", "passive_income", "total_income", "total_expenses", "monthly_cashflow", "summary"],
+                additionalProperties: false,
+              },
+            },
+          },
+        ],
+        tool_choice: { type: "function", function: { name: "generate_financial_statement" } },
+      }),
+    });
+
+    if (!response.ok) {
+      const status = response.status;
+      if (status === 429) {
+        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (status === 402) {
+        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add funds." }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const text = await response.text();
+      console.error("AI gateway error:", status, text);
+      return new Response(JSON.stringify({ error: "AI service error" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const data = await response.json();
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    if (!toolCall) {
+      return new Response(JSON.stringify({ error: "Failed to generate statement" }), {
+        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const statement = JSON.parse(toolCall.function.arguments);
+
+    return new Response(JSON.stringify(statement), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  } catch (e) {
+    console.error("generate-statement error:", e);
+    return new Response(
+      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
