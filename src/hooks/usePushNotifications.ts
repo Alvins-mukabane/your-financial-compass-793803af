@@ -65,8 +65,7 @@ export function usePushNotifications() {
           icon: "/pwa-icon-192.png",
           badge: "/pwa-icon-192.png",
           tag: tag || "financeai-" + Date.now(),
-          vibrate: [100, 50, 100],
-        });
+        } as NotificationOptions);
       }
     },
     [permission]

@@ -24,6 +24,7 @@ import ResetPassword from "@/pages/ResetPassword";
 import Terms from "@/pages/Terms";
 import Privacy from "@/pages/Privacy";
 import NotFound from "@/pages/NotFound";
+import Install from "@/pages/Install";
 
 const queryClient = new QueryClient();
 
