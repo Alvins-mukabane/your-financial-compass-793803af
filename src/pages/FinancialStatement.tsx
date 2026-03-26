@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, Loader2, RefreshCw, TrendingUp, TrendingDown, Building2, CreditCard, ArrowDown, ArrowUp } from "lucide-react";
+import { Sparkles, Loader2, RefreshCw, TrendingUp, TrendingDown, Building2, CreditCard, ArrowDown, ArrowUp, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import ManualEntryForm from "@/components/financial/ManualEntryForm";
 import CashflowDiagram from "@/components/financial/CashflowDiagram";
 import { useFinancialEntries } from "@/hooks/useFinancialEntries";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 type IncomeItem = { name: string; amount: number; description?: string };
 type ExpenseItem = { name: string; amount: number; category: string };
@@ -38,7 +40,46 @@ const liabilityTypeIcons: Record<string, string> = {
 export default function FinancialStatement() {
   const [data, setData] = useState<FinancialStatementData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const statementRef = useRef<HTMLDivElement>(null);
   const { assets: manualAssets, liabilities: manualLiabilities, addAsset, addLiability, editAsset, editLiability, deleteAsset, deleteLiability } = useFinancialEntries();
+
+  const exportPDF = async () => {
+    if (!statementRef.current) return;
+    setExporting(true);
+    try {
+      const canvas = await html2canvas(statementRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: document.documentElement.classList.contains("dark") ? "#0a0a0b" : "#ffffff",
+      });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      let heightLeft = pdfHeight;
+      let position = 0;
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - pdfHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save("FinanceAI-Financial-Statement.pdf");
+      toast.success("PDF downloaded successfully!");
+    } catch {
+      toast.error("Failed to export PDF");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const generate = async () => {
     setLoading(true);
