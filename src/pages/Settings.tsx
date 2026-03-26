@@ -23,6 +23,8 @@ const COUNTRIES = [
 
 export default function Settings() {
   const { user } = useAuth();
+  const navigate = useNavigate();
+  const { isSupported, permission, requestPermission } = usePushNotifications();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
