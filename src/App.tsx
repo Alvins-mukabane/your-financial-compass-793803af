@@ -24,6 +24,7 @@ import ResetPassword from "@/pages/ResetPassword";
 import Terms from "@/pages/Terms";
 import Privacy from "@/pages/Privacy";
 import NotFound from "@/pages/NotFound";
+import Install from "@/pages/Install";
 
 const queryClient = new QueryClient();
 
@@ -99,6 +100,7 @@ const App = () => (
               <Route path="/news" element={<ProtectedPage><News /></ProtectedPage>} />
               <Route path="/help" element={<ProtectedPage><HelpSupport /></ProtectedPage>} />
               <Route path="/feedback" element={<ProtectedPage><Feedback /></ProtectedPage>} />
+              <Route path="/install" element={<Install />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </AuthProvider>
