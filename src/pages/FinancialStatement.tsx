@@ -138,8 +138,8 @@ export default function FinancialStatement() {
   if (!data) return null;
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6 pb-24 md:pb-8">
-      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between">
+    <div ref={statementRef} className="p-4 md:p-8 max-w-6xl mx-auto space-y-6 pb-24 md:pb-8">
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             Financial Statement
@@ -147,11 +147,19 @@ export default function FinancialStatement() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">Rich Dad style · AI-generated analysis</p>
         </div>
-        <button onClick={generate} disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-        >
-          <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} /> Regenerate
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={exportPDF} disabled={exporting}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+          >
+            {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            {exporting ? "Exporting..." : "Export PDF"}
+          </button>
+          <button onClick={generate} disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          >
+            <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} /> Regenerate
+          </button>
+        </div>
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
