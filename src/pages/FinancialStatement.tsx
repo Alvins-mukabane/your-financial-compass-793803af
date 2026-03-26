@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, Loader2, RefreshCw, TrendingUp, TrendingDown, Building2, CreditCard, ArrowDown, ArrowUp } from "lucide-react";
+import { Sparkles, Loader2, RefreshCw, TrendingUp, TrendingDown, Building2, CreditCard, ArrowDown, ArrowUp, Download } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import ManualEntryForm from "@/components/financial/ManualEntryForm";
 import CashflowDiagram from "@/components/financial/CashflowDiagram";
 import { useFinancialEntries } from "@/hooks/useFinancialEntries";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 type IncomeItem = { name: string; amount: number; description?: string };
 type ExpenseItem = { name: string; amount: number; category: string };
@@ -38,7 +40,46 @@ const liabilityTypeIcons: Record<string, string> = {
 export default function FinancialStatement() {
   const [data, setData] = useState<FinancialStatementData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const statementRef = useRef<HTMLDivElement>(null);
   const { assets: manualAssets, liabilities: manualLiabilities, addAsset, addLiability, editAsset, editLiability, deleteAsset, deleteLiability } = useFinancialEntries();
+
+  const exportPDF = async () => {
+    if (!statementRef.current) return;
+    setExporting(true);
+    try {
+      const canvas = await html2canvas(statementRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: document.documentElement.classList.contains("dark") ? "#0a0a0b" : "#ffffff",
+      });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
+      let heightLeft = pdfHeight;
+      let position = 0;
+      const pageHeight = pdf.internal.pageSize.getHeight();
+
+      pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - pdfHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, "PNG", 0, position, pdfWidth, pdfHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save("FinanceAI-Financial-Statement.pdf");
+      toast.success("PDF downloaded successfully!");
+    } catch {
+      toast.error("Failed to export PDF");
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const generate = async () => {
     setLoading(true);
@@ -97,8 +138,8 @@ export default function FinancialStatement() {
   if (!data) return null;
 
   return (
-    <div className="p-4 md:p-8 max-w-6xl mx-auto space-y-6 pb-24 md:pb-8">
-      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between">
+    <div ref={statementRef} className="p-4 md:p-8 max-w-6xl mx-auto space-y-6 pb-24 md:pb-8">
+      <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             Financial Statement
@@ -106,11 +147,19 @@ export default function FinancialStatement() {
           </h1>
           <p className="text-sm text-muted-foreground mt-1">Rich Dad style · AI-generated analysis</p>
         </div>
-        <button onClick={generate} disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-        >
-          <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} /> Regenerate
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={exportPDF} disabled={exporting}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+          >
+            {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
+            {exporting ? "Exporting..." : "Export PDF"}
+          </button>
+          <button onClick={generate} disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          >
+            <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} /> Regenerate
+          </button>
+        </div>
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
