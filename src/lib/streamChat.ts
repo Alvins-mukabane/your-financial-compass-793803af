@@ -1,24 +1,39 @@
 export type Msg = { role: "user" | "assistant"; content: string };
 
+export type ParsedSpending = {
+  items: { category: string; amount: number; description: string }[];
+  total: number;
+  score: number;
+};
+
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
 export async function streamChat({
   messages,
+  token,
   onDelta,
   onDone,
   onError,
+  onSpendingParsed,
 }: {
   messages: Msg[];
+  token?: string;
   onDelta: (text: string) => void;
   onDone: () => void;
   onError: (err: string) => void;
+  onSpendingParsed?: (data: ParsedSpending) => void;
 }) {
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+  };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
   const resp = await fetch(CHAT_URL, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-    },
+    headers,
     body: JSON.stringify({ messages }),
   });
 
@@ -51,6 +66,11 @@ export async function streamChat({
       if (json === "[DONE]") { onDone(); return; }
       try {
         const parsed = JSON.parse(json);
+        // Handle custom spending_parsed event
+        if (parsed.type === "spending_parsed" && onSpendingParsed) {
+          onSpendingParsed(parsed);
+          continue;
+        }
         const content = parsed.choices?.[0]?.delta?.content;
         if (content) onDelta(content);
       } catch {
@@ -68,6 +88,10 @@ export async function streamChat({
       if (json === "[DONE]") continue;
       try {
         const p = JSON.parse(json);
+        if (p.type === "spending_parsed" && onSpendingParsed) {
+          onSpendingParsed(p);
+          continue;
+        }
         const c = p.choices?.[0]?.delta?.content;
         if (c) onDelta(c);
       } catch {}
