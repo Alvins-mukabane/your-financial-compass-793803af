@@ -242,10 +242,7 @@ export default function Chat() {
         <div className="border-t border-border bg-card/80 px-4 py-2 flex items-center justify-center gap-3">
           <TrendingUp className="w-4 h-4 text-primary" />
           <span className="text-xs font-medium text-muted-foreground">Financial Score:</span>
-          <span className={cn(
-            "text-sm font-bold tabular-nums",
-            score >= 80 ? "text-green-500" : score >= 60 ? "text-yellow-500" : "text-red-500"
-          )}>
+          <span className="text-sm font-bold tabular-nums text-primary">
             {score}/100
           </span>
         </div>
