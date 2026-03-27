@@ -92,6 +92,36 @@ export type Database = {
         }
         Relationships: []
       }
+      spending_logs: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          items: Json
+          raw_input: string
+          total: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          id?: string
+          items?: Json
+          raw_input: string
+          total?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          items?: Json
+          raw_input?: string
+          total?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
