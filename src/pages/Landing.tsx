@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { TrendingUp, Brain, Shield, Target, ArrowRight, Sparkles } from "lucide-react";
 import FAQSection from "@/components/FAQSection";
 import { landingFAQs } from "@/data/faqData";
+import SEO, { generateFAQSchema, generateOrganizationSchema } from "@/components/SEO";
 
 const features = [
   { icon: Brain, title: "AI-Powered Insights", desc: "Get personalized financial advice from your intelligent advisor, 24/7." },
@@ -21,8 +22,18 @@ const fadeUp = {
 };
 
 export default function Landing() {
+  const faqSchema = generateFAQSchema(landingFAQs.map(f => ({ question: f.question, answer: f.answer })));
+  const orgSchema = generateOrganizationSchema();
+
   return (
-    <div className="min-h-screen bg-background">
+    <>
+      <SEO
+        title="AI-Powered Financial Advisor & Budget Planner"
+        description="FinanceAI is an AI-powered financial advisor that analyzes your spending, predicts future balances, and provides personalized money advice. Track expenses, set goals, and improve your financial health with AI."
+        schema={{ "@graph": [orgSchema, faqSchema] }}
+        geo={{ region: "US", placename: "United States" }}
+      />
+      <div className="min-h-screen bg-background">
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-4 max-w-[1200px] mx-auto">
         <div className="flex items-center gap-2.5">
@@ -122,5 +133,6 @@ export default function Landing() {
         </div>
       </footer>
     </div>
+    </>
   );
 }

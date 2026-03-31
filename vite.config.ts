@@ -1,8 +1,19 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
+import fs from "node:fs";
+import os from "node:os";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 import { VitePWA } from "vite-plugin-pwa";
+
+const buildTmpDir =
+  [process.env.TMPDIR, process.env.TEMP, process.env.TMP, os.tmpdir(), "/tmp"].find(
+    (dir): dir is string => Boolean(dir) && fs.existsSync(dir),
+  ) ?? "/tmp";
+
+process.env.TMPDIR = buildTmpDir;
+process.env.TEMP = buildTmpDir;
+process.env.TMP = buildTmpDir;
 
 export default defineConfig(({ mode }) => ({
   server: {

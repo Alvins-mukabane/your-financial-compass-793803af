@@ -5,12 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "build:dev": "vite build --mode development",
+    "build": "TMPDIR=/tmp TEMP=/tmp TMP=/tmp vite build",
+    "build:dev": "TMPDIR=/tmp TEMP=/tmp TMP=/tmp vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "TMPDIR=/tmp TEMP=/tmp TMP=/tmp vitest run",
+    "test:watch": "TMPDIR=/tmp TEMP=/tmp TMP=/tmp vitest"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

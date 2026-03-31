@@ -1,11 +1,10 @@
-import { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, MessageSquare, ArrowLeftRight, Target,
-  FileText, HelpCircle, MessageCircle, Settings, LogOut, Menu, ChevronDown, BarChart3, Newspaper,
+  FileText, HelpCircle, MessageCircle, Settings, LogOut, Menu, BarChart3, Newspaper, CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/useAuth";
 import ThemeToggle from "@/components/ThemeToggle";
 import {
@@ -16,15 +15,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-const mainTabs = [
-  { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-];
-
 const menuItems = [
   { path: "/chat", label: "AI Advisor", icon: MessageSquare },
   { path: "/transactions", label: "Transactions", icon: ArrowLeftRight },
   { path: "/financial-statement", label: "Financial Statement", icon: FileText },
   { path: "/insights", label: "Spending Insights", icon: BarChart3 },
+  { path: "/subscriptions", label: "Subscriptions", icon: CreditCard },
   { path: "/news", label: "Finance News", icon: Newspaper },
   { path: "/goals", label: "Goals", icon: Target },
   { path: "/help", label: "Help & Support", icon: HelpCircle },

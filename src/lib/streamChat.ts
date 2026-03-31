@@ -82,7 +82,7 @@ export async function streamChat({
 
   // flush
   if (buffer.trim()) {
-    for (let raw of buffer.split("\n")) {
+    for (const raw of buffer.split("\n")) {
       if (!raw || !raw.startsWith("data: ")) continue;
       const json = raw.slice(6).trim();
       if (json === "[DONE]") continue;
@@ -94,7 +94,9 @@ export async function streamChat({
         }
         const c = p.choices?.[0]?.delta?.content;
         if (c) onDelta(c);
-      } catch {}
+      } catch {
+        // Ignore incomplete trailing chunks; the stream parser already retries them above.
+      }
     }
   }
 
