@@ -21,6 +21,8 @@ import Terms from "@/pages/Terms";
 import Privacy from "@/pages/Privacy";
 import NotFound from "@/pages/NotFound";
 import Install from "@/pages/Install";
+import Budget from "@/pages/Budget";
+import SpendingHistory from "@/pages/SpendingHistory";
 
 const queryClient = new QueryClient();
 
