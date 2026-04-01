@@ -176,6 +176,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <DropdownMenuItem onClick={() => navigate("/news")}>
                 <Newspaper className="w-4 h-4 mr-2" /> Finance News
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => navigate("/stock-picks")}>
+                <TrendingUp className="w-4 h-4 mr-2" /> Stock Picks
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate("/help")}>
                 <HelpCircle className="w-4 h-4 mr-2" /> Help & Support
               </DropdownMenuItem>
