@@ -22,6 +22,7 @@ const menuItems = [
   { path: "/budget", label: "Budget Limits", icon: DollarSign },
   { path: "/subscriptions", label: "Subscriptions", icon: CreditCard },
   { path: "/news", label: "Finance News", icon: Newspaper },
+  { path: "/stock-picks", label: "Stock Picks", icon: TrendingUp },
   { path: "/goals", label: "Goals", icon: Target },
   { path: "/help", label: "Help & Support", icon: HelpCircle },
   { path: "/feedback", label: "Feedback", icon: MessageCircle },
