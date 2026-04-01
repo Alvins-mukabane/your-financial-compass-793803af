@@ -122,42 +122,6 @@ export type Database = {
         }
         Relationships: []
       }
-      subscriptions: {
-        Row: {
-          id: string
-          user_id: string
-          name: string
-          price: number
-          billing_cycle: string
-          category: string
-          is_active: boolean
-          created_at: string
-          updated_at: string
-        }
-        Insert: {
-          id?: string
-          user_id: string
-          name: string
-          price: number
-          billing_cycle: string
-          category: string
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Update: {
-          id?: string
-          user_id?: string
-          name?: string
-          price?: number
-          billing_cycle?: string
-          category?: string
-          is_active?: boolean
-          created_at?: string
-          updated_at?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       [_ in never]: never
