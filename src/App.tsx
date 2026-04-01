@@ -14,6 +14,7 @@ import Settings from "@/pages/Settings";
 import FinancialStatement from "@/pages/FinancialStatement";
 import Insights from "@/pages/Insights";
 import News from "@/pages/News";
+import StockPicks from "@/pages/StockPicks";
 import Subscriptions from "@/pages/Subscriptions";
 import HelpSupport from "@/pages/HelpSupport";
 import Feedback from "@/pages/Feedback";
