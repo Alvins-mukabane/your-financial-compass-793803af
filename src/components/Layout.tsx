@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, MessageSquare, ArrowLeftRight, Target,
-  FileText, HelpCircle, MessageCircle, Settings, House, Menu, BarChart3, Newspaper, CreditCard, DollarSign, History,
+  FileText, HelpCircle, MessageCircle, Settings, House, Menu, BarChart3, Newspaper, CreditCard, DollarSign, History, TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
