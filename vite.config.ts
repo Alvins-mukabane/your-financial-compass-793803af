@@ -77,7 +77,7 @@ export default defineConfig(({ mode }) => ({
             sizes: "750x1334",
             type: "image/png",
             form_factor: "narrow",
-            label: "FinanceAI Mobile Dashboard",
+            label: "eva Mobile Dashboard",
           },
         ],
         shortcuts: [
