@@ -124,7 +124,7 @@ export default defineConfig(({ mode }) => ({
         },
         protocol_handlers: [
           {
-            protocol: "web+financeai",
+            protocol: "web+eva",
             url: "/dashboard?action=%s",
           },
         ],
