@@ -7,6 +7,7 @@ import { landingFAQs } from "@/data/faqData";
 import SEO, { generateFAQSchema, generateOrganizationSchema } from "@/components/SEO";
 import evaLockup from "@/assets/eva-lockup.png";
 import evaAppIcon from "@/assets/eva-app-icon.png";
+import { usePublicUser } from "@/context/PublicUserContext";
 
 const features = [
   { icon: Brain, title: "AI-Powered Insights", desc: "Understand your money with clear advice on spending patterns, habits, and next best moves." },
@@ -25,8 +26,16 @@ const fadeUp = {
 };
 
 export default function Landing() {
+  const { bootstrap, isAuthenticated } = usePublicUser();
   const faqSchema = generateFAQSchema(landingFAQs.map((f) => ({ question: f.question, answer: f.answer })));
   const orgSchema = generateOrganizationSchema();
+  const workspacePath = isAuthenticated
+    ? bootstrap.has_onboarded
+      ? "/dashboard"
+      : "/onboarding"
+    : "/auth";
+  const primaryCta = isAuthenticated ? "Open workspace" : "Sign in";
+  const secondaryCta = isAuthenticated ? "Continue setup" : "Set up workspace";
 
   return (
     <>
@@ -43,14 +52,14 @@ export default function Landing() {
         </div>
 
         <nav className="sticky top-0 z-20 mx-auto flex max-w-[1200px] items-center justify-between border-b border-border/70 bg-background/78 px-6 py-4 backdrop-blur-xl">
-          <img src={evaLockup} alt="eva" className="h-9 w-auto object-contain md:h-10" />
+            <img src={evaLockup} alt="eva" className="h-9 w-auto object-contain md:h-10" />
           <div className="flex items-center gap-3">
-            <Link to="/onboarding">
-              <Button variant="ghost" size="sm">Start setup</Button>
+            <Link to={workspacePath}>
+              <Button variant="ghost" size="sm">{isAuthenticated ? "Workspace" : "Sign in"}</Button>
             </Link>
-            <Link to="/onboarding">
+            <Link to={workspacePath}>
               <Button size="sm" className="gap-1.5">
-                Set up workspace <ArrowRight className="h-3.5 w-3.5" />
+                {primaryCta} <ArrowRight className="h-3.5 w-3.5" />
               </Button>
             </Link>
           </div>
@@ -81,14 +90,14 @@ export default function Landing() {
             </p>
 
             <div className="flex items-center justify-center gap-3 pt-2">
-              <Link to="/onboarding">
+              <Link to={workspacePath}>
                 <Button size="lg" className="gap-2 px-8">
-                  Start onboarding <ArrowRight className="h-4 w-4" />
+                  {primaryCta} <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
-              <Link to="/onboarding">
+              <Link to={workspacePath}>
                 <Button variant="outline" size="lg" className="px-8">
-                  Build my workspace
+                  {secondaryCta}
                 </Button>
               </Link>
             </div>

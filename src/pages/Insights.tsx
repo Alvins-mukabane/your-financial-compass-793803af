@@ -42,7 +42,7 @@ const insightColors: Record<string, string> = {
 };
 
 export default function Insights() {
-  const { bootstrap, publicUserId } = usePublicUser();
+  const { bootstrap } = usePublicUser();
   const [data, setData] = useState<InsightsData | null>(null);
   const [loading, setLoading] = useState(false);
   const [frequency, setFrequency] = useState<Frequency>("monthly");
@@ -62,7 +62,6 @@ export default function Insights() {
     try {
       const result = await invokeEdgeFunction<InsightsData>("generate-insights", {
         frequency,
-        public_user_id: publicUserId,
       });
       setData(result);
     } catch (e: any) {

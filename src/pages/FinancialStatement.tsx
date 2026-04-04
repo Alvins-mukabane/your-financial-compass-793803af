@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import ManualEntryForm from "@/components/financial/ManualEntryForm";
 import CashflowDiagram from "@/components/financial/CashflowDiagram";
-import { usePublicUser } from "@/context/PublicUserContext";
 import { useFinancialEntries } from "@/hooks/useFinancialEntries";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -40,7 +39,6 @@ const liabilityTypeIcons: Record<string, string> = {
 };
 
 export default function FinancialStatement() {
-  const { publicUserId } = usePublicUser();
   const [data, setData] = useState<FinancialStatementData | null>(null);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
@@ -92,9 +90,7 @@ export default function FinancialStatement() {
 
     setLoading(true);
     try {
-      const result = await invokeEdgeFunction<FinancialStatementData>("generate-statement", {
-        public_user_id: publicUserId,
-      });
+      const result = await invokeEdgeFunction<FinancialStatementData>("generate-statement");
       setData(result);
     } catch (e: any) {
       toast.error(e.message || "Failed to generate statement");

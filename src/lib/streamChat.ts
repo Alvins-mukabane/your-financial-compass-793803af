@@ -1,5 +1,5 @@
 import { ensureOnline, getDisplayErrorMessage, handleAppError } from "@/lib/appErrors";
-import { getOrCreatePublicUserId } from "@/lib/publicUser";
+import { supabase } from "@/integrations/supabase/client";
 
 export type Msg = { role: "user" | "assistant"; content: string };
 
@@ -26,12 +26,15 @@ export async function streamChat({
   onError: (err: string) => void;
   onSpendingParsed?: (data: ParsedSpending) => void;
 }) {
+  const sessionResult = await supabase.auth.getSession();
+  const accessToken = token ?? sessionResult.data.session?.access_token;
+
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
   };
-  if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+  if (accessToken) {
+    headers["Authorization"] = `Bearer ${accessToken}`;
   }
 
   try {
@@ -48,7 +51,6 @@ export async function streamChat({
       headers,
       body: JSON.stringify({
         messages,
-        public_user_id: getOrCreatePublicUserId(),
       }),
     });
   } catch (error) {
@@ -61,6 +63,7 @@ export async function streamChat({
   }
 
   if (!resp.ok) {
+    if (resp.status === 401) { onError("Your session expired. Sign in again to continue."); return; }
     if (resp.status === 429) { onError("Rate limit reached. Please wait a moment."); return; }
     if (resp.status === 402) { onError("AI credits exhausted. Please add funds."); return; }
     onError("Something went wrong. Please try again.");

@@ -7,6 +7,8 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import type { Session, User } from "@supabase/supabase-js";
+import { supabase, hasSupabaseConfig, SUPABASE_SETUP_MESSAGE } from "@/integrations/supabase/client";
 import {
   completeOnboarding,
   deleteBudgetLimit,
@@ -20,23 +22,32 @@ import {
   saveGoal,
   saveSubscription,
   updateProfile,
-  type BootstrapData,
-  type BudgetLimit,
-  type FinancialEntry,
-  type OnboardingPayload,
-  type Subscription,
-  type UserGoal,
-  type UserProfile,
-} from "@/lib/publicData";
+} from "@/lib/workspaceData";
+import type {
+  BootstrapData,
+  BudgetLimit,
+  FinancialEntry,
+  OnboardingPayload,
+  Subscription,
+  UserGoal,
+  UserProfile,
+} from "@/lib/evaContracts";
 import { handleAppError, normalizeAppError } from "@/lib/appErrors";
-import { getOrCreatePublicUserId } from "@/lib/publicUser";
+import { getStoredPublicUserId } from "@/lib/publicUser";
 
 type PublicUserContextValue = {
-  publicUserId: string;
+  session: Session | null;
+  user: User | null;
+  userId: string;
+  legacyPublicUserId: string;
+  isAuthenticated: boolean;
+  authLoading: boolean;
   bootstrap: BootstrapData;
   loading: boolean;
   refreshing: boolean;
   saving: boolean;
+  signInWithMagicLink: (email: string) => Promise<void>;
+  signOut: () => Promise<void>;
   refresh: () => Promise<void>;
   completeOnboarding: (payload: OnboardingPayload) => Promise<void>;
   updateProfile: (payload: Partial<UserProfile>) => Promise<void>;
@@ -51,10 +62,10 @@ type PublicUserContextValue = {
 };
 
 const PublicUserContext = createContext<PublicUserContextValue | undefined>(undefined);
-const BOOTSTRAP_CACHE_KEY = "eva-bootstrap-cache";
+const BOOTSTRAP_CACHE_KEY = "eva-workspace-cache";
 
-function readCachedBootstrap(publicUserId: string) {
-  if (typeof window === "undefined") {
+function readCachedBootstrap(userId: string) {
+  if (typeof window === "undefined" || !userId) {
     return null;
   }
 
@@ -65,26 +76,35 @@ function readCachedBootstrap(publicUserId: string) {
     }
 
     const cached = JSON.parse(raw) as BootstrapData;
-    return cached.public_user_id === publicUserId ? cached : null;
+    return cached.user_id === userId ? cached : null;
   } catch {
     return null;
   }
 }
 
 function writeCachedBootstrap(bootstrap: BootstrapData) {
-  if (typeof window === "undefined") {
+  if (typeof window === "undefined" || !bootstrap.user_id) {
     return;
   }
 
   window.localStorage.setItem(BOOTSTRAP_CACHE_KEY, JSON.stringify(bootstrap));
 }
 
+function clearCachedBootstrap() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.localStorage.removeItem(BOOTSTRAP_CACHE_KEY);
+}
+
 export function PublicUserProvider({ children }: { children: ReactNode }) {
-  const publicUserId = useMemo(() => getOrCreatePublicUserId(), []);
-  const [bootstrap, setBootstrap] = useState<BootstrapData>(
-    () => readCachedBootstrap(publicUserId) ?? getEmptyBootstrap(),
-  );
-  const [loading, setLoading] = useState(true);
+  const legacyPublicUserId = useMemo(() => getStoredPublicUserId(), []);
+  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [bootstrap, setBootstrap] = useState<BootstrapData>(getEmptyBootstrap());
+  const [workspaceLoading, setWorkspaceLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -93,88 +113,218 @@ export function PublicUserProvider({ children }: { children: ReactNode }) {
     writeCachedBootstrap(data);
   }, []);
 
-  const handleRefreshFailure = useCallback((error: unknown) => {
-    const cached = readCachedBootstrap(publicUserId);
-    if (cached) {
-      setBootstrap(cached);
+  const resetWorkspace = useCallback(
+    (nextUser: User | null) => {
+      if (!nextUser) {
+        clearCachedBootstrap();
+        setBootstrap(getEmptyBootstrap());
+        return;
+      }
+
+      const cached = readCachedBootstrap(nextUser.id);
+      setBootstrap(cached ?? getEmptyBootstrap(nextUser.id, nextUser.email ?? null));
+    },
+    [],
+  );
+
+  const handleRefreshFailure = useCallback(
+    (targetUser: User | null, error: unknown) => {
+      if (targetUser) {
+        const cached = readCachedBootstrap(targetUser.id);
+        if (cached) {
+          setBootstrap(cached);
+        } else {
+          setBootstrap(getEmptyBootstrap(targetUser.id, targetUser.email ?? null));
+        }
+      } else {
+        setBootstrap(getEmptyBootstrap());
+      }
+
+      const message =
+        error instanceof Error
+          ? error.message
+          : handleAppError(error, "We could not load your workspace. Please try again.").message;
+      console.warn(message);
+    },
+    [],
+  );
+
+  const initialize = useCallback(
+    async (activeUser: User | null) => {
+      if (!activeUser) {
+        resetWorkspace(null);
+        setWorkspaceLoading(false);
+        return;
+      }
+
+      setWorkspaceLoading(true);
+      try {
+        const data = await fetchBootstrap({ legacyPublicUserId });
+        applyBootstrap(data);
+      } catch (error) {
+        handleRefreshFailure(activeUser, error);
+      } finally {
+        setWorkspaceLoading(false);
+      }
+    },
+    [applyBootstrap, handleRefreshFailure, legacyPublicUserId, resetWorkspace],
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    void supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (!isMounted) {
+          return;
+        }
+
+        setSession(data.session ?? null);
+        setUser(data.session?.user ?? null);
+      })
+      .finally(() => {
+        if (isMounted) {
+          setAuthLoading(false);
+        }
+      });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+      setSession(nextSession ?? null);
+      setUser(nextSession?.user ?? null);
+      setAuthLoading(false);
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    if (authLoading) {
+      return;
     }
 
-    const message =
-      error instanceof Error
-        ? error.message
-        : handleAppError(error, "We could not load your workspace. Please try again.").message;
-    console.warn(message);
-  }, [publicUserId]);
+    resetWorkspace(user);
+    void initialize(user);
+  }, [authLoading, initialize, resetWorkspace, user]);
 
   const refresh = useCallback(async () => {
+    if (!user) {
+      return;
+    }
+
     setRefreshing(true);
     try {
-      const data = await fetchBootstrap();
+      const data = await fetchBootstrap({ legacyPublicUserId });
       applyBootstrap(data);
     } catch (error) {
-      handleRefreshFailure(error);
+      handleRefreshFailure(user, error);
     } finally {
       setRefreshing(false);
     }
-  }, [applyBootstrap, handleRefreshFailure]);
+  }, [applyBootstrap, handleRefreshFailure, legacyPublicUserId, user]);
 
-  const initialize = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await fetchBootstrap();
-      applyBootstrap(data);
-    } catch (error) {
-      handleRefreshFailure(error);
-    } finally {
-      setLoading(false);
+  const runMutation = useCallback(
+    async (callback: () => Promise<BootstrapData>) => {
+      if (!user) {
+        throw new Error("Sign in to continue.");
+      }
+
+      setSaving(true);
+      try {
+        const data = await callback();
+        applyBootstrap(data);
+      } catch (error) {
+        throw error instanceof Error
+          ? error
+          : normalizeAppError(error, "We could not save your changes. Please try again.");
+      } finally {
+        setSaving(false);
+      }
+    },
+    [applyBootstrap, user],
+  );
+
+  const signInWithMagicLink = useCallback(async (email: string) => {
+    if (!hasSupabaseConfig) {
+      throw new Error(SUPABASE_SETUP_MESSAGE);
     }
-  }, [applyBootstrap, handleRefreshFailure]);
 
-  useEffect(() => {
-    void initialize();
-  }, [initialize]);
+    const redirectTo =
+      typeof window === "undefined" ? undefined : `${window.location.origin}/auth`;
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: redirectTo,
+        shouldCreateUser: true,
+      },
+    });
 
-  const runMutation = useCallback(async (callback: () => Promise<BootstrapData>) => {
-    setSaving(true);
-    try {
-      const data = await callback();
-      setBootstrap(data);
-      writeCachedBootstrap(data);
-    } catch (error) {
-      throw error instanceof Error
-        ? error
-        : normalizeAppError(error, "We could not save your changes. Please try again.");
-    } finally {
-      setSaving(false);
+    if (error) {
+      throw normalizeAppError(error, "We could not send the magic link. Please try again.");
     }
   }, []);
 
-  const value = useMemo<PublicUserContextValue>(() => ({
-    publicUserId,
-    bootstrap,
-    loading,
-    refreshing,
-    saving,
-    refresh,
-    completeOnboarding: async (payload) => runMutation(() => completeOnboarding(payload)),
-    updateProfile: async (payload) => runMutation(() => updateProfile(payload)),
-    saveGoal: async (goal) => runMutation(() => saveGoal(goal)),
-    deleteGoal: async (goalId) => runMutation(() => deleteGoal(goalId)),
-    saveBudgetLimit: async (limit) => runMutation(() => saveBudgetLimit(limit)),
-    deleteBudgetLimit: async (limitId) => runMutation(() => deleteBudgetLimit(limitId)),
-    saveSubscription: async (subscription) => runMutation(() => saveSubscription(subscription)),
-    deleteSubscription: async (subscriptionId) => runMutation(() => deleteSubscription(subscriptionId)),
-    saveFinancialEntry: async (entry) => runMutation(() => saveFinancialEntry(entry)),
-    deleteFinancialEntry: async (entryId) => runMutation(() => deleteFinancialEntry(entryId)),
-  }), [
-    bootstrap,
-    loading,
-    publicUserId,
-    refreshing,
-    refresh,
-    runMutation,
-    saving,
-  ]);
+  const signOut = useCallback(async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      throw normalizeAppError(error, "We could not sign you out. Please try again.");
+    }
+
+    clearCachedBootstrap();
+    setBootstrap(getEmptyBootstrap());
+  }, []);
+
+  const loading = authLoading || workspaceLoading;
+
+  const value = useMemo<PublicUserContextValue>(
+    () => ({
+      session,
+      user,
+      userId: user?.id ?? "",
+      legacyPublicUserId,
+      isAuthenticated: Boolean(user),
+      authLoading,
+      bootstrap,
+      loading,
+      refreshing,
+      saving,
+      signInWithMagicLink,
+      signOut,
+      refresh,
+      completeOnboarding: async (payload) =>
+        runMutation(() => completeOnboarding(payload, { legacyPublicUserId })),
+      updateProfile: async (payload) => runMutation(() => updateProfile(payload)),
+      saveGoal: async (goal) => runMutation(() => saveGoal(goal)),
+      deleteGoal: async (goalId) => runMutation(() => deleteGoal(goalId)),
+      saveBudgetLimit: async (limit) => runMutation(() => saveBudgetLimit(limit)),
+      deleteBudgetLimit: async (limitId) => runMutation(() => deleteBudgetLimit(limitId)),
+      saveSubscription: async (subscription) => runMutation(() => saveSubscription(subscription)),
+      deleteSubscription: async (subscriptionId) =>
+        runMutation(() => deleteSubscription(subscriptionId)),
+      saveFinancialEntry: async (entry) => runMutation(() => saveFinancialEntry(entry)),
+      deleteFinancialEntry: async (entryId) =>
+        runMutation(() => deleteFinancialEntry(entryId)),
+    }),
+    [
+      authLoading,
+      bootstrap,
+      legacyPublicUserId,
+      loading,
+      refresh,
+      refreshing,
+      runMutation,
+      saving,
+      session,
+      signInWithMagicLink,
+      signOut,
+      user,
+    ],
+  );
 
   return (
     <PublicUserContext.Provider value={value}>

@@ -24,6 +24,7 @@ import Install from "@/pages/Install";
 import Budget from "@/pages/Budget";
 import SpendingHistory from "@/pages/SpendingHistory";
 import Onboarding from "@/pages/Onboarding";
+import Auth from "@/pages/Auth";
 
 const queryClient = new QueryClient();
 
@@ -45,11 +46,15 @@ function FullPageLoading() {
 }
 
 function ProtectedPage({ children }: { children: React.ReactNode }) {
-  const { bootstrap, loading } = usePublicUser();
+  const { bootstrap, isAuthenticated, loading } = usePublicUser();
   const location = useLocation();
 
   if (loading) {
     return <FullPageLoading />;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/auth" replace state={{ from: location.pathname }} />;
   }
 
   if (!bootstrap.has_onboarded) {
@@ -60,10 +65,14 @@ function ProtectedPage({ children }: { children: React.ReactNode }) {
 }
 
 function OnboardingPage() {
-  const { bootstrap, loading } = usePublicUser();
+  const { bootstrap, isAuthenticated, loading } = usePublicUser();
 
   if (loading) {
     return <FullPageLoading />;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/auth" replace />;
   }
 
   if (bootstrap.has_onboarded) {
@@ -71,6 +80,20 @@ function OnboardingPage() {
   }
 
   return <Onboarding />;
+}
+
+function AuthPage() {
+  const { bootstrap, isAuthenticated, loading } = usePublicUser();
+
+  if (loading) {
+    return <FullPageLoading />;
+  }
+
+  if (isAuthenticated) {
+    return <Navigate to={bootstrap.has_onboarded ? "/dashboard" : "/onboarding"} replace />;
+  }
+
+  return <Auth />;
 }
 
 const App = () => (
@@ -83,6 +106,7 @@ const App = () => (
         <PublicUserProvider>
           <Routes>
             <Route path="/" element={<Landing />} />
+            <Route path="/auth" element={<AuthPage />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/onboarding" element={<OnboardingPage />} />

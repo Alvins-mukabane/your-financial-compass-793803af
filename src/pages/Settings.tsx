@@ -9,6 +9,7 @@ import {
   MessageCircle,
   Save,
   Shield,
+  LogOut,
   User,
 } from "lucide-react";
 import { useLocation } from "react-router-dom";
@@ -31,7 +32,7 @@ type SettingsTab = "profile" | "notifications" | "billing" | "help" | "feedback"
 
 export default function Settings() {
   const location = useLocation();
-  const { bootstrap, updateProfile, saving } = usePublicUser();
+  const { bootstrap, updateProfile, saving, signOut, user } = usePublicUser();
   const { isSupported, permission, requestPermission } = usePushNotifications();
   const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
   const [feedbackMsg, setFeedbackMsg] = useState("");
@@ -109,6 +110,17 @@ export default function Settings() {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast.success("Signed out successfully.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Unable to sign out right now.",
+      );
+    }
+  };
+
   const tabs: { id: SettingsTab; label: string; icon: typeof User }[] = [
     { id: "profile", label: "Profile", icon: User },
     { id: "notifications", label: "Notifications", icon: Bell },
@@ -165,6 +177,19 @@ export default function Settings() {
                 This information powers onboarding-backed summaries and planning.
               </p>
             </div>
+          </div>
+
+          <div className="flex flex-col gap-3 rounded-xl border border-border bg-background px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-sm font-medium text-foreground">Account</p>
+              <p className="text-xs text-muted-foreground">
+                Signed in as {user?.email ?? "your eva account"}.
+              </p>
+            </div>
+            <Button type="button" variant="outline" className="gap-2" onClick={handleSignOut}>
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </Button>
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">

@@ -23,6 +23,7 @@ export const supabase: SupabaseClient<Database> = createClient<Database>(
   {
     auth: {
       storage: localStorage,
+      detectSessionInUrl: hasSupabaseConfig,
       persistSession: hasSupabaseConfig,
       autoRefreshToken: hasSupabaseConfig,
     },
