@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Send, Sparkles, User, Loader2, TrendingUp, Wallet, BarChart3, Calendar } from "lucide-react";
 import ReactMarkdown from "react-markdown";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { streamChat, type Msg, type ParsedSpending } from "@/lib/streamChat";
 import { usePublicUser } from "@/context/PublicUserContext";
 import { cn } from "@/lib/utils";
@@ -29,7 +29,6 @@ type ChatEntry =
 
 export default function Chat() {
   const location = useLocation();
-  const navigate = useNavigate();
   const { refresh } = usePublicUser();
   const [messages, setMessages] = useState<Msg[]>([]);
   const [entries, setEntries] = useState<ChatEntry[]>([]);
@@ -140,8 +139,17 @@ export default function Chat() {
       window.sessionStorage.removeItem(CHAT_STARTER_STORAGE_KEY);
     }
 
-    navigate(location.pathname, { replace: true, state: {} });
-  }, [location.pathname, location.state, navigate, send]);
+    if (typeof window !== "undefined" && window.history?.replaceState) {
+      window.history.replaceState(
+        {
+          ...(window.history.state ?? {}),
+          usr: {},
+        },
+        "",
+        window.location.href,
+      );
+    }
+  }, [location.state, send]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
