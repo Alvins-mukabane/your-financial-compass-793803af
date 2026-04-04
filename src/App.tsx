@@ -17,8 +17,6 @@ import Insights from "@/pages/Insights";
 import News from "@/pages/News";
 import StockPicks from "@/pages/StockPicks";
 import Subscriptions from "@/pages/Subscriptions";
-import HelpSupport from "@/pages/HelpSupport";
-import Feedback from "@/pages/Feedback";
 import Terms from "@/pages/Terms";
 import Privacy from "@/pages/Privacy";
 import NotFound from "@/pages/NotFound";
@@ -98,8 +96,8 @@ const App = () => (
             <Route path="/insights" element={<ProtectedPage><Insights /></ProtectedPage>} />
             <Route path="/news" element={<ProtectedPage><News /></ProtectedPage>} />
             <Route path="/stock-picks" element={<ProtectedPage><StockPicks /></ProtectedPage>} />
-            <Route path="/help" element={<ProtectedPage><HelpSupport /></ProtectedPage>} />
-            <Route path="/feedback" element={<ProtectedPage><Feedback /></ProtectedPage>} />
+            <Route path="/help" element={<Navigate to="/settings" replace state={{ tab: "help" }} />} />
+            <Route path="/feedback" element={<Navigate to="/settings" replace state={{ tab: "feedback" }} />} />
             <Route path="/budget" element={<ProtectedPage><Budget /></ProtectedPage>} />
             <Route path="/spending-history" element={<ProtectedPage><SpendingHistory /></ProtectedPage>} />
             <Route path="/install" element={<Install />} />

@@ -20,6 +20,13 @@ interface StockRec {
   newsletter_note?: string;
 }
 
+type RawStockRec = Partial<StockRec> & {
+  stock?: string;
+  price?: string;
+  target?: string;
+  note?: string;
+};
+
 const riskColors: Record<string, string> = {
   Low: "text-primary bg-primary/10",
   Medium: "text-[hsl(var(--chart-4))] bg-[hsl(var(--chart-5)/0.16)]",
@@ -39,6 +46,36 @@ export default function StockPicks() {
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState("All");
 
+  const normalizeRecommendations = (items: RawStockRec[] = []): StockRec[] =>
+    items
+      .map((item, index) => {
+        const source = item.source || "Motley Fool";
+        const company = item.company || item.stock || item.ticker || `Pick ${index + 1}`;
+        const ticker = item.ticker || item.stock || company;
+        return {
+          ticker,
+          company,
+          recommendation:
+            item.recommendation && ["Strong Buy", "Buy", "Hold"].includes(item.recommendation)
+              ? item.recommendation
+              : "Hold",
+          current_price: item.current_price || item.price || "Live price unavailable",
+          target_price: item.target_price || item.target || "Review manually",
+          upside: item.upside || "Review upside",
+          reason:
+            item.reason ||
+            `eva pulled this idea from live market research sources. Review the latest thesis before acting.`,
+          source,
+          risk_level:
+            item.risk_level && ["Low", "Medium", "High"].includes(item.risk_level)
+              ? item.risk_level
+              : "Medium",
+          sector: item.sector || "General Market",
+          newsletter_note: item.newsletter_note || item.note,
+        };
+      })
+      .filter((item) => Boolean(item.company));
+
   const fetchRecs = async () => {
     if (!hasSupabaseConfig) {
       toast.error(SUPABASE_SETUP_MESSAGE);
@@ -48,12 +85,14 @@ export default function StockPicks() {
     setLoading(true);
     try {
       const data = await invokeEdgeFunction<{
-        recommendations?: StockRec[];
+        recommendations?: RawStockRec[];
         market_pulse?: string;
         motley_fool_focus?: string;
+        summary?: string;
       }>("stock-recommendations");
-      setRecs(data.recommendations || []);
-      setMarketPulse(data.market_pulse || "");
+      const normalized = normalizeRecommendations(data.recommendations || []);
+      setRecs(normalized);
+      setMarketPulse(data.market_pulse || data.summary || "");
       setFoolFocus(data.motley_fool_focus || "");
     } catch (e: any) {
       toast.error(e.message || "Failed to fetch recommendations");
@@ -64,7 +103,7 @@ export default function StockPicks() {
 
   const sectors = ["All", ...new Set(recs.map((r) => r.sector))];
   const filtered = filter === "All" ? recs : recs.filter((r) => r.sector === filter);
-  const isMotleyFool = (source: string) => source.toLowerCase().includes("motley fool");
+  const isMotleyFool = (source?: string) => (source || "").toLowerCase().includes("motley fool");
 
   return (
     <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-6 pb-24 md:pb-8">

@@ -95,7 +95,83 @@ serve(async (req) => {
     const groqData = await groqResponse.json();
     const result = JSON.parse(groqData.choices[0].message.content);
 
-    return new Response(JSON.stringify(result), {
+    const normalizedRecommendations = Array.isArray(result.recommendations)
+      ? result.recommendations.map((item: Record<string, unknown>, index: number) => {
+          const source = typeof item.source === "string" && item.source ? item.source : "Motley Fool";
+          const company =
+            typeof item.company === "string" && item.company
+              ? item.company
+              : typeof item.stock === "string" && item.stock
+                ? item.stock
+                : typeof item.ticker === "string" && item.ticker
+                  ? item.ticker
+                  : `Pick ${index + 1}`;
+          const ticker =
+            typeof item.ticker === "string" && item.ticker
+              ? item.ticker
+              : typeof item.stock === "string" && item.stock
+                ? item.stock
+                : company;
+
+          return {
+            ticker,
+            company,
+            recommendation:
+              typeof item.recommendation === "string" &&
+              ["Strong Buy", "Buy", "Hold"].includes(item.recommendation)
+                ? item.recommendation
+                : "Hold",
+            current_price:
+              typeof item.current_price === "string" && item.current_price
+                ? item.current_price
+                : typeof item.price === "string" && item.price
+                  ? item.price
+                  : "Live price unavailable",
+            target_price:
+              typeof item.target_price === "string" && item.target_price
+                ? item.target_price
+                : "Review manually",
+            upside:
+              typeof item.upside === "string" && item.upside
+                ? item.upside
+                : "Review upside",
+            reason:
+              typeof item.reason === "string" && item.reason
+                ? item.reason
+                : `eva pulled this idea from live research sources. Review the current thesis before acting.`,
+            source,
+            risk_level:
+              typeof item.risk_level === "string" &&
+              ["Low", "Medium", "High"].includes(item.risk_level)
+                ? item.risk_level
+                : "Medium",
+            sector:
+              typeof item.sector === "string" && item.sector
+                ? item.sector
+                : "General Market",
+            newsletter_note:
+              typeof item.newsletter_note === "string" && item.newsletter_note
+                ? item.newsletter_note
+                : undefined,
+          };
+        })
+      : [];
+
+    const normalizedResult = {
+      recommendations: normalizedRecommendations,
+      market_pulse:
+        typeof result.market_pulse === "string" && result.market_pulse
+          ? result.market_pulse
+          : typeof result.summary === "string" && result.summary
+            ? result.summary
+            : "",
+      motley_fool_focus:
+        typeof result.motley_fool_focus === "string" && result.motley_fool_focus
+          ? result.motley_fool_focus
+          : "",
+    };
+
+    return new Response(JSON.stringify(normalizedResult), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
 

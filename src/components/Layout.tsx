@@ -6,8 +6,6 @@ import {
   ArrowLeftRight,
   Target,
   FileText,
-  HelpCircle,
-  MessageCircle,
   Settings,
   House,
   Menu,
@@ -48,8 +46,6 @@ const utilityMenuItems: NavItem[] = [
 ];
 
 const supportMenuItems: NavItem[] = [
-  { path: "/help", label: "Help & Support", icon: HelpCircle },
-  { path: "/feedback", label: "Feedback", icon: MessageCircle },
   { path: "/settings", label: "Settings", icon: Settings },
 ];
 
@@ -79,13 +75,6 @@ const mobileMoreSections: Array<{ label: string; items: NavItem[] }> = [
       { path: "/stock-picks", label: "Stock Picks", icon: TrendingUp },
     ],
   },
-  {
-    label: "Support",
-    items: [
-      { path: "/help", label: "Help & Support", icon: HelpCircle },
-      { path: "/feedback", label: "Feedback", icon: MessageCircle },
-    ],
-  },
 ];
 
 function SidebarButton({
@@ -104,7 +93,7 @@ function SidebarButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "relative flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-sm font-medium transition-colors",
+        "relative flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-base font-medium transition-colors",
         isActive
           ? "bg-primary/12 text-primary shadow-[inset_0_0_0_1px_rgba(243,162,28,0.14)]"
           : "text-muted-foreground hover:bg-secondary/90 hover:text-foreground",
@@ -141,7 +130,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <aside className="fixed hidden h-screen w-[236px] flex-col gap-4 border-r border-border/90 bg-[hsl(var(--sidebar-background)/0.94)] p-4 pt-5 shadow-[18px_0_45px_-38px_rgba(110,73,75,0.28)] backdrop-blur-xl md:flex">
         <div className="rounded-[1.5rem] border border-border/90 bg-card/95 p-4 shadow-[0_18px_40px_-30px_rgba(110,73,75,0.24)]">
           <img src={evaLockup} alt="eva" className="h-14 w-auto object-contain" />
-          <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+          <p className="mt-3 text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
             Your AI Finance Assistant
           </p>
         </div>
@@ -157,14 +146,14 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             </div>
 
             <div className="space-y-1">
-              <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Plan</p>
+              <p className="px-3 text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Plan</p>
               {primaryMenuItems.map((item) => (
                 <SidebarButton key={item.path} item={item} activePath={activePath} onClick={() => navigate(item.path)} />
               ))}
             </div>
 
             <div className="space-y-1">
-              <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">Explore</p>
+              <p className="px-3 text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">Explore</p>
               {utilityMenuItems.map((item) => (
                 <SidebarButton key={item.path} item={item} activePath={activePath} onClick={() => navigate(item.path)} />
               ))}
@@ -180,8 +169,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
         <div className="mt-auto flex flex-col gap-2">
           <div className="rounded-[1.25rem] border border-primary/15 bg-primary/[0.06] px-4 py-3">
-            <p className="text-xs font-semibold text-foreground">Your AI Finance Assistant</p>
-            <p className="mt-1 text-[11px] text-muted-foreground">
+            <p className="text-sm font-semibold text-foreground">Your AI Finance Assistant</p>
+            <p className="mt-1 text-xs text-muted-foreground">
               Clarity for spending, planning, and calmer cashflow decisions.
             </p>
           </div>

@@ -107,19 +107,6 @@ serve(async (req) => {
       );
     }
 
-    if (bootstrap.financial_entries.length === 0) {
-      return new Response(
-        JSON.stringify({
-          error:
-            "Add at least one asset or liability so eva can build a real financial statement.",
-        }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
-      );
-    }
-
     const fallbackStatement = buildFallbackStatement(bootstrap);
     const LOVABLE_API_KEY =
       Deno.env.get("LOVABLE_API_KEY") ?? Deno.env.get("AI_GATEWAY_API");

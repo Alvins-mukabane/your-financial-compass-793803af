@@ -11,7 +11,7 @@ import {
   Shield,
   User,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import { usePublicUser } from "@/context/PublicUserContext";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
@@ -30,7 +30,7 @@ import { Switch } from "@/components/ui/switch";
 type SettingsTab = "profile" | "notifications" | "billing" | "help" | "feedback";
 
 export default function Settings() {
-  const navigate = useNavigate();
+  const location = useLocation();
   const { bootstrap, updateProfile, saving } = usePublicUser();
   const { isSupported, permission, requestPermission } = usePushNotifications();
   const [activeTab, setActiveTab] = useState<SettingsTab>("profile");
@@ -72,6 +72,21 @@ export default function Settings() {
         bootstrap.profile.budgeting_focus || BUDGETING_FOCUS_OPTIONS[0],
     });
   }, [bootstrap.profile]);
+
+  useEffect(() => {
+    const requestedTab = (location.state as { tab?: SettingsTab } | null)?.tab;
+    if (requestedTab) {
+      setActiveTab(requestedTab);
+      window.history.replaceState(
+        {
+          ...(window.history.state ?? {}),
+          usr: {},
+        },
+        "",
+        window.location.href,
+      );
+    }
+  }, [location.state]);
 
   const handleSave = async () => {
     try {
@@ -458,12 +473,34 @@ export default function Settings() {
             <HelpCircle className="h-4 w-4" />
             Help and support
           </h2>
-          <div className="space-y-3">
-            <Button variant="outline" className="w-full justify-start" onClick={() => navigate("/help")}>
-              Open help center
-            </Button>
-            <Button variant="outline" className="w-full justify-start" onClick={() => navigate("/feedback")}>
-              Share product feedback
+          <div className="grid gap-4">
+            {[
+              {
+                title: "Chat with AI Advisor",
+                desc: "Ask eva about spending, cashflow, goals, and next-best actions from the AI Advisor tab.",
+              },
+              {
+                title: "Contact Support",
+                desc: "For product or account issues, email support@useaima.com and include what happened plus the page you were on.",
+              },
+              {
+                title: "Frequently asked questions",
+                desc: "Your financial statement uses onboarding data, budgets, entries, subscriptions, and logged spending. Add more real data to deepen the analysis.",
+              },
+            ].map((item) => (
+              <div key={item.title} className="rounded-xl border border-border bg-background px-4 py-4">
+                <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-4">
+            <p className="text-sm font-semibold text-foreground">Need to report something?</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Use the feedback tab to send a note directly from settings.
+            </p>
+            <Button variant="outline" className="mt-4 w-full justify-start" onClick={() => setActiveTab("feedback")}>
+              Open feedback form
             </Button>
           </div>
         </motion.div>

@@ -1,71 +1,84 @@
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
-    --background: 35 68% 95%;
-    --foreground: 357 20% 36%;
+    --background: 35 85% 97%;
+    --foreground: 24 28% 18%;
 
-    --card: 32 100% 97%;
-    --card-foreground: 357 20% 36%;
+    --card: 34 100% 99%;
+    --card-foreground: 24 28% 18%;
 
-    --popover: 32 100% 97%;
-    --popover-foreground: 357 20% 36%;
+    --popover: 34 100% 99%;
+    --popover-foreground: 24 28% 18%;
 
-    --primary: 37 90% 53%;
+    --primary: 31 95% 52%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 34 36% 90%;
-    --secondary-foreground: 357 16% 31%;
+    --secondary: 35 56% 90%;
+    --secondary-foreground: 23 24% 22%;
 
-    --muted: 34 32% 92%;
-    --muted-foreground: 29 17% 45%;
+    --muted: 34 44% 93%;
+    --muted-foreground: 27 18% 32%;
 
-    --accent: 36 61% 88%;
-    --accent-foreground: 28 55% 34%;
+    --accent: 33 74% 88%;
+    --accent-foreground: 28 61% 28%;
 
-    --destructive: 11 59% 54%;
+    --destructive: 8 66% 49%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 34 30% 84%;
-    --input: 34 30% 84%;
-    --ring: 37 90% 53%;
+    --border: 31 34% 77%;
+    --input: 31 34% 77%;
+    --ring: 31 95% 52%;
 
     --radius: 0.75rem;
 
-    --sidebar-background: 35 72% 94%;
-    --sidebar-foreground: 357 16% 31%;
-    --sidebar-primary: 37 90% 53%;
+    --sidebar-background: 35 88% 95%;
+    --sidebar-foreground: 24 26% 19%;
+    --sidebar-primary: 31 95% 52%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 34 36% 90%;
-    --sidebar-accent-foreground: 357 16% 31%;
-    --sidebar-border: 34 30% 84%;
-    --sidebar-ring: 37 90% 53%;
+    --sidebar-accent: 35 56% 90%;
+    --sidebar-accent-foreground: 23 24% 22%;
+    --sidebar-border: 31 34% 77%;
+    --sidebar-ring: 31 95% 52%;
 
-    --chart-1: 37 90% 53%;
-    --chart-2: 28 73% 38%;
-    --chart-3: 5 47% 49%;
-    --chart-4: 29 25% 55%;
-    --chart-5: 43 70% 56%;
+    --chart-1: 31 95% 52%;
+    --chart-2: 149 53% 35%;
+    --chart-3: 7 58% 51%;
+    --chart-4: 23 46% 42%;
+    --chart-5: 45 86% 54%;
   }
 }
 
 @layer base {
+  html {
+    font-size: 17px;
+  }
+
   * {
     @apply border-border;
   }
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: "Manrope", "Segoe UI", sans-serif;
-    font-size: 14px;
-    line-height: 1.6;
+    font-family: "Roboto", "Open Sans", "Lato", "Segoe UI", sans-serif;
+    font-size: 1rem;
+    line-height: 1.75;
     background-image:
-      radial-gradient(circle at top center, hsl(37 90% 53% / 0.16), transparent 34%),
-      radial-gradient(circle at 82% 16%, hsl(28 73% 38% / 0.08), transparent 22%),
-      linear-gradient(180deg, hsl(32 100% 97%), hsl(35 68% 95%));
+      radial-gradient(circle at top center, hsl(31 95% 52% / 0.22), transparent 34%),
+      radial-gradient(circle at 82% 16%, hsl(149 53% 35% / 0.09), transparent 22%),
+      linear-gradient(180deg, hsl(34 100% 99%), hsl(35 85% 97%));
     background-attachment: fixed;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
   }
 
   h1, h2, h3, h4 {
@@ -82,6 +95,26 @@
   .text-balance {
     text-wrap: balance;
   }
+
+  .text-xs {
+    font-size: 0.95rem;
+    line-height: 1.45rem;
+  }
+
+  .text-sm {
+    font-size: 1rem;
+    line-height: 1.6rem;
+  }
+
+  .text-base {
+    font-size: 1.08rem;
+    line-height: 1.75rem;
+  }
+
+  .text-lg {
+    font-size: 1.18rem;
+    line-height: 1.8rem;
+  }
 }
 
 /* Scrollbar styling */
@@ -93,9 +126,9 @@
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: hsl(29 25% 55%);
+  background: hsl(24 20% 40%);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: hsl(28 73% 38%);
+  background: hsl(31 95% 42%);
 }

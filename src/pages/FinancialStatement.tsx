@@ -120,9 +120,10 @@ export default function FinancialStatement() {
             <Sparkles className="w-8 h-8 text-primary" />
           </div>
           <h1 className="text-2xl font-bold tracking-tight">CASHFLOW Financial Statement</h1>
-          <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
-            Add at least one real asset or liability, then generate a statement based only on your
-            onboarding data and the balance-sheet entries you have saved.
+          <p className="text-sm text-muted-foreground mt-2 max-w-xl mx-auto">
+            Generate a statement from your onboarding profile right away. Adding assets and
+            liabilities later will make the balance-sheet side more detailed, but they are no
+            longer required to get your first statement.
           </p>
           <button onClick={generate}
             className="mt-6 inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors active:scale-[0.97]"
