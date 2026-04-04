@@ -45,7 +45,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-background">
       {/* Desktop sidebar */}
-      <aside className="hidden md:flex flex-col w-[220px] border-r border-border bg-card/50 p-4 pt-6 gap-1 fixed h-screen">
+      <aside className="hidden md:flex flex-col w-[220px] border-r border-border/80 bg-card/72 backdrop-blur-xl p-4 pt-6 gap-1 fixed h-screen shadow-[8px_0_30px_-30px_rgba(50,38,32,0.35)]">
         <div className="flex items-center gap-2.5 px-3 mb-8">
           <img src={evaLogo} alt="eva" className="w-8 h-8 rounded-lg object-contain" />
           <span className="font-semibold text-foreground tracking-tight text-[15px]">eva</span>
@@ -102,7 +102,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </nav>
 
         <div className="mt-auto flex flex-col gap-2">
-          <div className="px-3 py-3 rounded-xl border border-primary/15 bg-primary/5">
+          <div className="px-3 py-3 rounded-xl border border-border bg-secondary/60">
             <p className="text-xs font-semibold text-foreground">Understand · Plan · Grow</p>
             <p className="text-[11px] text-muted-foreground mt-1">
               Your AI-powered financial companion.
@@ -128,7 +128,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* Mobile bottom tabs with dropdown */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-sm border-t border-border z-50">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card/92 backdrop-blur-xl border-t border-border z-50 shadow-[0_-12px_40px_-32px_rgba(50,38,32,0.35)]">
         <div className="flex items-center justify-around h-16 px-2">
           {allTabs.map((tab) => {
             const isActive = activePath === tab.path;

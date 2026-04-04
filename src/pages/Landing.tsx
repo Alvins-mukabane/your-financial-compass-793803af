@@ -34,9 +34,13 @@ export default function Landing() {
         schema={{ "@graph": [orgSchema, faqSchema] }}
         geo={{ region: "US", placename: "United States" }}
       />
-      <div className="min-h-screen bg-background">
+      <div className="relative min-h-screen overflow-hidden bg-background">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-[34rem]">
+        <div className="absolute left-1/2 top-[-10rem] h-[28rem] w-[46rem] -translate-x-1/2 rounded-full bg-primary/12 blur-3xl" />
+        <div className="absolute right-[8%] top-24 h-56 w-56 rounded-full bg-[hsl(151_58%_36%/.08)] blur-3xl" />
+      </div>
       {/* Nav */}
-      <nav className="flex items-center justify-between px-6 py-4 max-w-[1200px] mx-auto">
+      <nav className="sticky top-0 z-20 flex items-center justify-between px-6 py-4 max-w-[1200px] mx-auto backdrop-blur-xl bg-background/70 border-b border-border/50">
         <div className="flex items-center gap-2.5">
           <img src={evaLogo} alt="eva" className="w-8 h-8 rounded-lg object-contain" />
           <span className="font-semibold text-foreground tracking-tight text-[15px]">eva</span>
@@ -61,14 +65,14 @@ export default function Landing() {
           transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
           className="space-y-6"
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-xs font-medium text-primary">
-            <Sparkles className="w-3.5 h-3.5" /> Understand · Plan · Grow
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-card/90 border border-border shadow-sm text-xs font-medium text-muted-foreground">
+            <Sparkles className="w-3.5 h-3.5 text-primary" /> Finance by useaima
           </div>
           <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-foreground leading-[1.1] max-w-3xl mx-auto text-balance">
-            Your money, managed by <span className="text-primary">intelligence</span>
+            Your money, guided with <span className="text-primary">clarity</span>.
           </h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            eva analyzes your spending, predicts your future, and gives you actionable advice — your AI-powered financial companion.
+            eva brings the useaima experience into your finances with warm, confident guidance on spending, planning, and long-term decisions.
           </p>
           <div className="flex items-center justify-center gap-3 pt-4">
             <Link to="/dashboard">
@@ -81,6 +85,25 @@ export default function Landing() {
                 Ask the AI
               </Button>
             </Link>
+          </div>
+          <div className="mx-auto mt-10 max-w-3xl rounded-[2rem] border border-border/80 bg-card/80 px-6 py-5 shadow-[0_30px_80px_-48px_rgba(50,38,32,0.45)] backdrop-blur">
+            <div className="grid gap-4 text-left md:grid-cols-3">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Track</p>
+                <p className="mt-2 text-sm font-semibold text-foreground">See where money actually goes</p>
+                <p className="mt-1 text-sm text-muted-foreground">Log spending naturally and keep every decision grounded in clear category trends.</p>
+              </div>
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Plan</p>
+                <p className="mt-2 text-sm font-semibold text-foreground">Look ahead with confidence</p>
+                <p className="mt-1 text-sm text-muted-foreground">Get balance forecasts, savings targets, and budget signals before surprises hit.</p>
+              </div>
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Grow</p>
+                <p className="mt-2 text-sm font-semibold text-foreground">Turn habits into momentum</p>
+                <p className="mt-1 text-sm text-muted-foreground">Use AI guidance to tighten routines, improve your score, and build long-term stability.</p>
+              </div>
+            </div>
           </div>
         </motion.div>
       </section>
@@ -96,9 +119,9 @@ export default function Landing() {
               whileInView="visible"
               viewport={{ once: true }}
               variants={fadeUp}
-              className="bg-card border border-border rounded-xl p-6 space-y-3 hover:border-primary/20 transition-colors"
+              className="bg-card/85 border border-border rounded-[1.25rem] p-6 space-y-3 shadow-[0_20px_50px_-40px_rgba(50,38,32,0.5)] hover:border-primary/30 hover:-translate-y-0.5 transition-all"
             >
-              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <div className="w-10 h-10 rounded-xl bg-primary/12 flex items-center justify-center">
                 <f.icon className="w-5 h-5 text-primary" />
               </div>
               <h3 className="font-semibold text-foreground">{f.title}</h3>

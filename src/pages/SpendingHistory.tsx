@@ -7,8 +7,8 @@ import { cn } from "@/lib/utils";
 
 const COLORS = [
   "hsl(var(--primary))", "hsl(var(--chart-2))", "hsl(var(--chart-3))",
-  "hsl(var(--chart-4))", "hsl(var(--chart-5))", "#f97316", "#06b6d4",
-  "#8b5cf6", "#ec4899", "#14b8a6", "#f59e0b",
+  "hsl(var(--chart-4))", "hsl(var(--chart-5))", "hsl(10 58% 58%)", "hsl(151 44% 38%)",
+  "hsl(43 55% 47%)", "hsl(28 34% 42%)", "hsl(16 50% 54%)", "hsl(38 70% 50%)",
 ];
 
 type TimeRange = "7d" | "30d" | "90d";

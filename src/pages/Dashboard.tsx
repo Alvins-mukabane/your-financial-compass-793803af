@@ -154,11 +154,12 @@ export default function Dashboard() {
                 </Pie>
                 <Tooltip
                   contentStyle={{
-                    background: "hsl(225 12% 14%)",
-                    border: "1px solid hsl(225 10% 20%)",
-                    borderRadius: "8px",
+                    background: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "10px",
                     fontSize: "12px",
-                    color: "hsl(210 20% 92%)",
+                    color: "hsl(var(--foreground))",
+                    boxShadow: "0 18px 40px -28px rgba(50, 38, 32, 0.45)",
                   }}
                   formatter={(value: number) => formatCurrency(value)}
                 />
@@ -194,42 +195,43 @@ export default function Dashboard() {
               <AreaChart data={monthlyTrend}>
                 <defs>
                   <linearGradient id="incomeGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(162 48% 42%)" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="hsl(162 48% 42%)" stopOpacity={0} />
+                    <stop offset="5%" stopColor="hsl(151 58% 36%)" stopOpacity={0.28} />
+                    <stop offset="95%" stopColor="hsl(151 58% 36%)" stopOpacity={0} />
                   </linearGradient>
                   <linearGradient id="expenseGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="hsl(350 60% 55%)" stopOpacity={0.2} />
-                    <stop offset="95%" stopColor="hsl(350 60% 55%)" stopOpacity={0} />
+                    <stop offset="5%" stopColor="hsl(10 58% 58%)" stopOpacity={0.22} />
+                    <stop offset="95%" stopColor="hsl(10 58% 58%)" stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <XAxis
                   dataKey="month"
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fontSize: 11, fill: "hsl(215 12% 52%)" }}
+                  tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
                 />
                 <YAxis hide />
                 <Tooltip
                   contentStyle={{
-                    background: "hsl(225 12% 14%)",
-                    border: "1px solid hsl(225 10% 20%)",
-                    borderRadius: "8px",
+                    background: "hsl(var(--card))",
+                    border: "1px solid hsl(var(--border))",
+                    borderRadius: "10px",
                     fontSize: "12px",
-                    color: "hsl(210 20% 92%)",
+                    color: "hsl(var(--foreground))",
+                    boxShadow: "0 18px 40px -28px rgba(50, 38, 32, 0.45)",
                   }}
                   formatter={(value: number) => formatCurrency(value)}
                 />
                 <Area
                   type="monotone"
                   dataKey="income"
-                  stroke="hsl(162 48% 42%)"
+                  stroke="hsl(151 58% 36%)"
                   fill="url(#incomeGrad)"
                   strokeWidth={2}
                 />
                 <Area
                   type="monotone"
                   dataKey="expenses"
-                  stroke="hsl(350 60% 55%)"
+                  stroke="hsl(10 58% 58%)"
                   fill="url(#expenseGrad)"
                   strokeWidth={2}
                 />
@@ -242,7 +244,7 @@ export default function Dashboard() {
               {isEnterprise ? "Revenue" : "Income"}
             </div>
             <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
-              <div className="w-2 h-2 rounded-full" style={{ background: "hsl(350 60% 55%)" }} />
+              <div className="w-2 h-2 rounded-full" style={{ background: "hsl(10 58% 58%)" }} />
               {isEnterprise ? "Costs" : "Expenses"}
             </div>
           </div>

@@ -18,9 +18,9 @@ export default function HealthScoreGauge({ score }: Props) {
   }, [score]);
 
   const getColor = (s: number) => {
-    if (s >= 80) return "hsl(162 48% 42%)";
-    if (s >= 60) return "hsl(38 75% 55%)";
-    return "hsl(0 62% 55%)";
+    if (s >= 80) return "hsl(151 58% 36%)";
+    if (s >= 60) return "hsl(33 72% 52%)";
+    return "hsl(11 59% 54%)";
   };
 
   const getLabel = (s: number) => {
@@ -37,7 +37,7 @@ export default function HealthScoreGauge({ score }: Props) {
           <circle
             cx="60" cy="60" r={radius}
             fill="none"
-            stroke="hsl(225 10% 16%)"
+            stroke="hsl(var(--border))"
             strokeWidth="8"
           />
           <circle

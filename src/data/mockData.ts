@@ -28,15 +28,15 @@ export type Goal = {
 };
 
 export const CATEGORY_COLORS: Record<TransactionCategory, string> = {
-  "Food & Dining": "hsl(162 48% 42%)",
-  Transport: "hsl(38 75% 55%)",
-  Entertainment: "hsl(280 55% 55%)",
-  Shopping: "hsl(350 60% 55%)",
-  "Bills & Utilities": "hsl(200 60% 50%)",
-  Health: "hsl(120 40% 48%)",
-  Education: "hsl(220 60% 58%)",
-  Income: "hsl(162 60% 50%)",
-  Savings: "hsl(45 70% 50%)",
+  "Food & Dining": "hsl(33 72% 52%)",
+  Transport: "hsl(151 44% 38%)",
+  Entertainment: "hsl(16 50% 54%)",
+  Shopping: "hsl(10 58% 58%)",
+  "Bills & Utilities": "hsl(28 34% 42%)",
+  Health: "hsl(142 35% 43%)",
+  Education: "hsl(43 55% 47%)",
+  Income: "hsl(151 58% 36%)",
+  Savings: "hsl(38 70% 50%)",
 };
 
 export const CATEGORY_ICONS: Record<TransactionCategory, string> = {
