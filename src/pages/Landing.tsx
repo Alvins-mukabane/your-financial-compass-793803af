@@ -33,9 +33,11 @@ export default function Landing() {
     ? bootstrap.has_onboarded
       ? "/dashboard"
       : "/onboarding"
-    : "/auth";
-  const primaryCta = isAuthenticated ? "Open workspace" : "Sign in";
-  const secondaryCta = isAuthenticated ? "Continue setup" : "Set up workspace";
+    : "/auth?mode=signin";
+  const signInPath = "/auth?mode=signin";
+  const signUpPath = "/auth?mode=signup";
+  const primaryCta = isAuthenticated ? "Open workspace" : "Sign up";
+  const secondaryCta = isAuthenticated ? "Continue setup" : "Sign in";
 
   return (
     <>
@@ -54,10 +56,10 @@ export default function Landing() {
         <nav className="sticky top-0 z-20 mx-auto flex max-w-[1200px] items-center justify-between border-b border-border/70 bg-background/78 px-6 py-4 backdrop-blur-xl">
             <img src={evaLockup} alt="eva" className="h-9 w-auto object-contain md:h-10" />
           <div className="flex items-center gap-3">
-            <Link to={workspacePath}>
+            <Link to={isAuthenticated ? workspacePath : signInPath}>
               <Button variant="ghost" size="sm">{isAuthenticated ? "Workspace" : "Sign in"}</Button>
             </Link>
-            <Link to={workspacePath}>
+            <Link to={isAuthenticated ? workspacePath : signUpPath}>
               <Button size="sm" className="gap-1.5">
                 {primaryCta} <ArrowRight className="h-3.5 w-3.5" />
               </Button>
@@ -90,12 +92,12 @@ export default function Landing() {
             </p>
 
             <div className="flex items-center justify-center gap-3 pt-2">
-              <Link to={workspacePath}>
+              <Link to={isAuthenticated ? workspacePath : signUpPath}>
                 <Button size="lg" className="gap-2 px-8">
                   {primaryCta} <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
-              <Link to={workspacePath}>
+              <Link to={isAuthenticated ? workspacePath : signInPath}>
                 <Button variant="outline" size="lg" className="px-8">
                   {secondaryCta}
                 </Button>

@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -28,7 +28,6 @@ import ManualEntryForm, {
 } from "@/components/financial/ManualEntryForm";
 import {
   BUDGET_LIMIT_CATEGORIES,
-  COUNTRIES,
   SUBSCRIPTION_CATEGORIES,
   USER_TYPES,
   formatCurrencyDetailed,
@@ -252,18 +251,24 @@ function SelectionCard({
 
 export default function Onboarding() {
   const navigate = useNavigate();
-  const { completeOnboarding, saving } = usePublicUser();
+  const { authProfileSeed, bootstrap, completeOnboarding, saving, user } = usePublicUser();
   const [stepIndex, setStepIndex] = useState(0);
-  const [profile, setProfile] = useState({
-    first_name: "",
-    last_name: "",
-    country: "United States",
-    user_type: "personal" as "personal" | "business",
-    updates_opt_in: true,
-    cash_balance: "",
-    monthly_income: "",
-    monthly_fixed_expenses: "",
-  });
+  const [profile, setProfile] = useState(() => ({
+    first_name: bootstrap.profile?.first_name || authProfileSeed.first_name,
+    last_name: bootstrap.profile?.last_name || authProfileSeed.last_name,
+    country: bootstrap.profile?.country || authProfileSeed.country || "United States",
+    phone_number: bootstrap.profile?.phone_number || authProfileSeed.phone_number,
+    user_type:
+      bootstrap.profile?.user_type === "business" ? "business" as const : "personal" as const,
+    updates_opt_in: bootstrap.profile?.updates_opt_in ?? authProfileSeed.updates_opt_in,
+    password_setup_completed:
+      bootstrap.profile?.password_setup_completed ?? authProfileSeed.password_setup_completed,
+    cash_balance: bootstrap.profile ? String(bootstrap.profile.cash_balance ?? 0) : "",
+    monthly_income: bootstrap.profile ? String(bootstrap.profile.monthly_income ?? 0) : "",
+    monthly_fixed_expenses: bootstrap.profile
+      ? String(bootstrap.profile.monthly_fixed_expenses ?? 0)
+      : "",
+  }));
   const [intentFocus, setIntentFocus] = useState<IntentFocus | null>(null);
   const [biggestProblem, setBiggestProblem] = useState<BiggestProblem | null>(null);
   const [moneyStyle, setMoneyStyle] = useState<MoneyStyle | null>(null);
@@ -302,6 +307,29 @@ export default function Onboarding() {
   const [firstActionPrompt, setFirstActionPrompt] = useState("");
 
   const currentStep = steps[stepIndex];
+
+  useEffect(() => {
+    setProfile((current) => ({
+      ...current,
+      first_name: current.first_name || bootstrap.profile?.first_name || authProfileSeed.first_name,
+      last_name: current.last_name || bootstrap.profile?.last_name || authProfileSeed.last_name,
+      country: current.country || bootstrap.profile?.country || authProfileSeed.country || "United States",
+      phone_number:
+        current.phone_number ||
+        bootstrap.profile?.phone_number ||
+        authProfileSeed.phone_number,
+      updates_opt_in:
+        bootstrap.profile?.updates_opt_in ?? current.updates_opt_in ?? authProfileSeed.updates_opt_in,
+      password_setup_completed:
+        bootstrap.profile?.password_setup_completed ??
+        current.password_setup_completed ??
+        authProfileSeed.password_setup_completed,
+      user_type:
+        current.user_type === "personal" && bootstrap.profile?.user_type === "business"
+          ? "business"
+          : current.user_type,
+    }));
+  }, [authProfileSeed, bootstrap.profile]);
 
   const monthlySubscriptionTotal = useMemo(
     () =>
@@ -345,8 +373,7 @@ export default function Onboarding() {
 
     if (currentStep.id === "setup") {
       return Boolean(
-        profile.first_name.trim() &&
-          profile.country &&
+        profile.user_type &&
           profile.cash_balance &&
           profile.monthly_income &&
           profile.monthly_fixed_expenses,
@@ -437,8 +464,10 @@ export default function Onboarding() {
           first_name: profile.first_name.trim(),
           last_name: profile.last_name.trim(),
           country: profile.country,
+          phone_number: profile.phone_number.trim(),
           user_type: profile.user_type,
           updates_opt_in: profile.updates_opt_in,
+          password_setup_completed: profile.password_setup_completed,
           cash_balance: Number(profile.cash_balance || 0),
           monthly_income: Number(profile.monthly_income || 0),
           monthly_fixed_expenses: Number(profile.monthly_fixed_expenses || 0),
@@ -756,46 +785,42 @@ export default function Onboarding() {
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>First name</Label>
-                  <Input
-                    value={profile.first_name}
-                    onChange={(event) =>
-                      setProfile((current) => ({ ...current, first_name: event.target.value }))
-                    }
-                    placeholder="Alvin"
-                  />
+                <div className="space-y-4 rounded-[1.4rem] border border-border bg-background/70 p-5 md:col-span-2">
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-primary">
+                      <Wallet className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">Account details already saved</p>
+                      <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                        Basic identity details come from your sign-up. You can edit them later in
+                        Settings, so onboarding can stay focused on your financial baseline.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-3 text-sm md:grid-cols-2">
+                    <div className="rounded-2xl border border-border bg-card px-4 py-3">
+                      <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Full name</p>
+                      <p className="mt-2 font-medium text-foreground">
+                        {[profile.first_name, profile.last_name].filter(Boolean).join(" ") || "Saved in your account"}
+                      </p>
+                    </div>
+                    <div className="rounded-2xl border border-border bg-card px-4 py-3">
+                      <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Email</p>
+                      <p className="mt-2 font-medium text-foreground">{user?.email ?? "Your eva account"}</p>
+                    </div>
+                    <div className="rounded-2xl border border-border bg-card px-4 py-3">
+                      <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Country</p>
+                      <p className="mt-2 font-medium text-foreground">{profile.country || "Not set yet"}</p>
+                    </div>
+                    <div className="rounded-2xl border border-border bg-card px-4 py-3">
+                      <p className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Phone number</p>
+                      <p className="mt-2 font-medium text-foreground">{profile.phone_number || "Not set yet"}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <Label>Last name</Label>
-                  <Input
-                    value={profile.last_name}
-                    onChange={(event) =>
-                      setProfile((current) => ({ ...current, last_name: event.target.value }))
-                    }
-                    placeholder="Mukabane"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Country</Label>
-                  <Select
-                    value={profile.country}
-                    onValueChange={(value) =>
-                      setProfile((current) => ({ ...current, country: value }))
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {COUNTRIES.map((country) => (
-                        <SelectItem key={country} value={country}>
-                          {country}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+
                 <div className="space-y-2">
                   <Label>User type</Label>
                   <div className="grid grid-cols-2 gap-3">

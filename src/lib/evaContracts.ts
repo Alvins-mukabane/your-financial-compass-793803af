@@ -12,8 +12,10 @@ export interface UserProfile {
   first_name: string;
   last_name: string;
   country: string;
+  phone_number: string;
   user_type: UserType;
   updates_opt_in: boolean;
+  password_setup_completed: boolean;
   cash_balance: number;
   monthly_income: number;
   monthly_fixed_expenses: number;
@@ -145,8 +147,10 @@ export interface OnboardingPayload {
     first_name: string;
     last_name: string;
     country: string;
+    phone_number: string;
     user_type: UserType;
     updates_opt_in: boolean;
+    password_setup_completed: boolean;
     cash_balance: number;
     monthly_income: number;
     monthly_fixed_expenses: number;

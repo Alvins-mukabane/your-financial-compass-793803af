@@ -49,6 +49,7 @@ export default function Settings() {
     first_name: "",
     last_name: "",
     country: "United States",
+    phone_number: "",
     user_type: "personal" as "personal" | "business",
     updates_opt_in: true,
     cash_balance: "",
@@ -63,6 +64,7 @@ export default function Settings() {
       first_name: bootstrap.profile.first_name,
       last_name: bootstrap.profile.last_name,
       country: bootstrap.profile.country || "United States",
+      phone_number: bootstrap.profile.phone_number || "",
       user_type:
         bootstrap.profile.user_type === "business" ? "business" : "personal",
       updates_opt_in: bootstrap.profile.updates_opt_in,
@@ -95,6 +97,7 @@ export default function Settings() {
         first_name: form.first_name.trim(),
         last_name: form.last_name.trim(),
         country: form.country,
+        phone_number: form.phone_number.trim(),
         user_type: form.user_type,
         updates_opt_in: form.updates_opt_in,
         cash_balance: Number(form.cash_balance || 0),
@@ -230,6 +233,17 @@ export default function Settings() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Phone number</Label>
+              <Input
+                type="tel"
+                value={form.phone_number}
+                onChange={(event) =>
+                  setForm((current) => ({ ...current, phone_number: event.target.value }))
+                }
+                placeholder="+254 700 000 000"
+              />
             </div>
             <div className="space-y-2">
               <Label>User type</Label>

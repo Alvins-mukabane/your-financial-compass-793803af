@@ -2,7 +2,7 @@ import type { FAQItem } from "@/components/FAQSection";
 
 export const landingFAQs: FAQItem[] = [
   { question: "What is eva?", answer: "eva is your AI finance assistant for understanding spending, planning next steps, and making calmer money decisions from one focused dashboard." },
-  { question: "Do I need an account to try it?", answer: "No. eva starts with onboarding instead of sign-up. Your workspace is tied to this browser for now, and your data is saved to the app backend without a visible authentication flow yet." },
+  { question: "Do I need an account to try it?", answer: "Yes. eva now uses a secure account flow so your workspace can sync across devices and your financial record stays attached to you instead of one browser." },
   { question: "Is eva free to use?", answer: "eva offers a generous free tier with core features including spending analysis, financial health score, and AI advisor access. Premium plans unlock advanced analytics, goal planning, and enterprise features." },
   { question: "How does the AI advisor work?", answer: "Our AI advisor uses advanced language models trained on financial best practices. It analyzes your transaction history, spending patterns, and goals to deliver personalized advice in a conversational chat interface." },
   { question: "Is my financial data secure?", answer: "Absolutely. We use bank-level encryption, secure cloud infrastructure, and never share your data with third parties. Your financial information is protected by industry-standard security protocols." },

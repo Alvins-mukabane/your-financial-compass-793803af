@@ -13,8 +13,10 @@ type FinanceProfile = {
   first_name: string;
   last_name: string;
   country: string;
+  phone_number: string;
   user_type: string;
   updates_opt_in: boolean;
+  password_setup_completed: boolean;
   cash_balance: number;
   monthly_income: number;
   monthly_fixed_expenses: number;
@@ -96,8 +98,10 @@ type LegacyPublicProfile = {
   first_name: string;
   last_name: string;
   country: string;
+  phone_number?: string;
   user_type: string;
   updates_opt_in: boolean;
+  password_setup_completed?: boolean;
   cash_balance: number;
   monthly_income: number;
   monthly_fixed_expenses: number;
@@ -304,12 +308,16 @@ function mapLegacyProfileToFinanceProfile(
     first_name: String(profile.first_name ?? existingProfile?.first_name ?? ""),
     last_name: String(profile.last_name ?? existingProfile?.last_name ?? ""),
     country: String(profile.country ?? existingProfile?.country ?? ""),
+    phone_number: String(profile.phone_number ?? existingProfile?.phone_number ?? ""),
     user_type:
       profile.user_type === "business" || existingProfile?.user_type === "business"
         ? "business"
         : "personal",
     updates_opt_in: parseBoolean(
       profile.updates_opt_in ?? existingProfile?.updates_opt_in ?? true,
+    ),
+    password_setup_completed: parseBoolean(
+      profile.password_setup_completed ?? existingProfile?.password_setup_completed ?? false,
     ),
     cash_balance: parseNumber(profile.cash_balance ?? existingProfile?.cash_balance),
     monthly_income: parseNumber(profile.monthly_income ?? existingProfile?.monthly_income),

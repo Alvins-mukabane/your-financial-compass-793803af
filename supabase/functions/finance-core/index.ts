@@ -67,9 +67,9 @@ serve(async (req) => {
       );
       const { error } = await admin.from("finance_profiles").upsert({
         ...mergedProfile,
-        onboarding_completed: existingProfile?.onboarding_completed ?? true,
+        onboarding_completed: existingProfile?.onboarding_completed ?? false,
         onboarding_completed_at:
-          existingProfile?.onboarding_completed_at ?? new Date().toISOString(),
+          existingProfile?.onboarding_completed_at ?? null,
       });
 
       if (error) throw error;

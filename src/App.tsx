@@ -46,7 +46,7 @@ function FullPageLoading() {
 }
 
 function ProtectedPage({ children }: { children: React.ReactNode }) {
-  const { bootstrap, isAuthenticated, loading } = usePublicUser();
+  const { bootstrap, isAuthenticated, loading, requiresPasswordSetup } = usePublicUser();
   const location = useLocation();
 
   if (loading) {
@@ -54,7 +54,11 @@ function ProtectedPage({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/auth" replace state={{ from: location.pathname }} />;
+    return <Navigate to="/auth?mode=signin" replace state={{ from: location.pathname }} />;
+  }
+
+  if (requiresPasswordSetup) {
+    return <Navigate to="/auth?mode=set-password" replace state={{ from: location.pathname }} />;
   }
 
   if (!bootstrap.has_onboarded) {
@@ -65,14 +69,18 @@ function ProtectedPage({ children }: { children: React.ReactNode }) {
 }
 
 function OnboardingPage() {
-  const { bootstrap, isAuthenticated, loading } = usePublicUser();
+  const { bootstrap, isAuthenticated, loading, requiresPasswordSetup } = usePublicUser();
 
   if (loading) {
     return <FullPageLoading />;
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/auth?mode=signin" replace />;
+  }
+
+  if (requiresPasswordSetup) {
+    return <Navigate to="/auth?mode=set-password" replace />;
   }
 
   if (bootstrap.has_onboarded) {
@@ -83,13 +91,16 @@ function OnboardingPage() {
 }
 
 function AuthPage() {
-  const { bootstrap, isAuthenticated, loading } = usePublicUser();
+  const { bootstrap, isAuthenticated, loading, requiresPasswordSetup } = usePublicUser();
 
   if (loading) {
     return <FullPageLoading />;
   }
 
   if (isAuthenticated) {
+    if (requiresPasswordSetup) {
+      return <Auth forcedMode="set-password" />;
+    }
     return <Navigate to={bootstrap.has_onboarded ? "/dashboard" : "/onboarding"} replace />;
   }
 

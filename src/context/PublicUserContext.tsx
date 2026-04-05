@@ -8,7 +8,11 @@ import {
   type ReactNode,
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
-import { supabase, hasSupabaseConfig, SUPABASE_SETUP_MESSAGE } from "@/integrations/supabase/client";
+import {
+  supabase,
+  hasSupabaseConfig,
+  SUPABASE_SETUP_MESSAGE,
+} from "@/integrations/supabase/client";
 import {
   completeOnboarding,
   deleteBudgetLimit,
@@ -21,7 +25,7 @@ import {
   saveFinancialEntry,
   saveGoal,
   saveSubscription,
-  updateProfile,
+  updateProfile as updateWorkspaceProfile,
 } from "@/lib/workspaceData";
 import type {
   BootstrapData,
@@ -34,6 +38,21 @@ import type {
 } from "@/lib/evaContracts";
 import { handleAppError, normalizeAppError } from "@/lib/appErrors";
 import { getStoredPublicUserId } from "@/lib/publicUser";
+import {
+  type AuthProfileSeed,
+  getAuthProfileSeed,
+  hasPasswordSetup,
+  splitFullName,
+} from "@/lib/authProfile";
+
+type SignUpPayload = {
+  full_name: string;
+  email: string;
+  country: string;
+  phone_number: string;
+  password: string;
+  updates_opt_in: boolean;
+};
 
 type PublicUserContextValue = {
   session: Session | null;
@@ -42,11 +61,17 @@ type PublicUserContextValue = {
   legacyPublicUserId: string;
   isAuthenticated: boolean;
   authLoading: boolean;
+  authProfileSeed: AuthProfileSeed;
+  requiresPasswordSetup: boolean;
   bootstrap: BootstrapData;
   loading: boolean;
   refreshing: boolean;
   saving: boolean;
-  signInWithMagicLink: (email: string) => Promise<void>;
+  signUpWithPassword: (payload: SignUpPayload) => Promise<void>;
+  signInWithPassword: (email: string, password: string) => Promise<void>;
+  resendVerificationEmail: (email: string) => Promise<void>;
+  sendLegacyMagicLink: (email: string) => Promise<void>;
+  completeLegacyPasswordSetup: (password: string) => Promise<void>;
   signOut: () => Promise<void>;
   refresh: () => Promise<void>;
   completeOnboarding: (payload: OnboardingPayload) => Promise<void>;
@@ -98,6 +123,10 @@ function clearCachedBootstrap() {
   window.localStorage.removeItem(BOOTSTRAP_CACHE_KEY);
 }
 
+function getAuthRedirectTo() {
+  return typeof window === "undefined" ? undefined : `${window.location.origin}/auth`;
+}
+
 export function PublicUserProvider({ children }: { children: ReactNode }) {
   const legacyPublicUserId = useMemo(() => getStoredPublicUserId(), []);
   const [session, setSession] = useState<Session | null>(null);
@@ -108,46 +137,46 @@ export function PublicUserProvider({ children }: { children: ReactNode }) {
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const authProfileSeed = useMemo(() => getAuthProfileSeed(user), [user]);
+  const requiresPasswordSetup = useMemo(
+    () => Boolean(user) && !hasPasswordSetup(user, bootstrap.profile),
+    [bootstrap.profile, user],
+  );
+
   const applyBootstrap = useCallback((data: BootstrapData) => {
     setBootstrap(data);
     writeCachedBootstrap(data);
   }, []);
 
-  const resetWorkspace = useCallback(
-    (nextUser: User | null) => {
-      if (!nextUser) {
-        clearCachedBootstrap();
-        setBootstrap(getEmptyBootstrap());
-        return;
-      }
+  const resetWorkspace = useCallback((nextUser: User | null) => {
+    if (!nextUser) {
+      clearCachedBootstrap();
+      setBootstrap(getEmptyBootstrap());
+      return;
+    }
 
-      const cached = readCachedBootstrap(nextUser.id);
-      setBootstrap(cached ?? getEmptyBootstrap(nextUser.id, nextUser.email ?? null));
-    },
-    [],
-  );
+    const cached = readCachedBootstrap(nextUser.id);
+    setBootstrap(cached ?? getEmptyBootstrap(nextUser.id, nextUser.email ?? null));
+  }, []);
 
-  const handleRefreshFailure = useCallback(
-    (targetUser: User | null, error: unknown) => {
-      if (targetUser) {
-        const cached = readCachedBootstrap(targetUser.id);
-        if (cached) {
-          setBootstrap(cached);
-        } else {
-          setBootstrap(getEmptyBootstrap(targetUser.id, targetUser.email ?? null));
-        }
+  const handleRefreshFailure = useCallback((targetUser: User | null, error: unknown) => {
+    if (targetUser) {
+      const cached = readCachedBootstrap(targetUser.id);
+      if (cached) {
+        setBootstrap(cached);
       } else {
-        setBootstrap(getEmptyBootstrap());
+        setBootstrap(getEmptyBootstrap(targetUser.id, targetUser.email ?? null));
       }
+    } else {
+      setBootstrap(getEmptyBootstrap());
+    }
 
-      const message =
-        error instanceof Error
-          ? error.message
-          : handleAppError(error, "We could not load your workspace. Please try again.").message;
-      console.warn(message);
-    },
-    [],
-  );
+    const message =
+      error instanceof Error
+        ? error.message
+        : handleAppError(error, "We could not load your workspace. Please try again.").message;
+    console.warn(message);
+  }, []);
 
   const initialize = useCallback(
     async (activeUser: User | null) => {
@@ -249,18 +278,90 @@ export function PublicUserProvider({ children }: { children: ReactNode }) {
     [applyBootstrap, user],
   );
 
-  const signInWithMagicLink = useCallback(async (email: string) => {
+  const signUpWithPassword = useCallback(
+    async ({
+      full_name,
+      email,
+      country,
+      phone_number,
+      password,
+      updates_opt_in,
+    }: SignUpPayload) => {
+      if (!hasSupabaseConfig) {
+        throw new Error(SUPABASE_SETUP_MESSAGE);
+      }
+
+      const { first_name, last_name } = splitFullName(full_name);
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: getAuthRedirectTo(),
+          data: {
+            full_name: full_name.trim(),
+            first_name,
+            last_name,
+            country: country.trim(),
+            phone_number: phone_number.trim(),
+            updates_opt_in,
+            password_setup_completed: true,
+          },
+        },
+      });
+
+      if (error) {
+        throw normalizeAppError(error, "We could not create your account. Please try again.");
+      }
+    },
+    [],
+  );
+
+  const signInWithPassword = useCallback(async (email: string, password: string) => {
     if (!hasSupabaseConfig) {
       throw new Error(SUPABASE_SETUP_MESSAGE);
     }
 
-    const redirectTo =
-      typeof window === "undefined" ? undefined : `${window.location.origin}/auth`;
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      throw normalizeAppError(error, "We could not sign you in. Please try again.");
+    }
+  }, []);
+
+  const resendVerificationEmail = useCallback(async (email: string) => {
+    if (!hasSupabaseConfig) {
+      throw new Error(SUPABASE_SETUP_MESSAGE);
+    }
+
+    const { error } = await supabase.auth.resend({
+      email,
+      type: "signup",
+      options: {
+        emailRedirectTo: getAuthRedirectTo(),
+      },
+    });
+
+    if (error) {
+      throw normalizeAppError(
+        error,
+        "We could not resend the verification email. Please try again.",
+      );
+    }
+  }, []);
+
+  const sendLegacyMagicLink = useCallback(async (email: string) => {
+    if (!hasSupabaseConfig) {
+      throw new Error(SUPABASE_SETUP_MESSAGE);
+    }
+
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: redirectTo,
-        shouldCreateUser: true,
+        emailRedirectTo: getAuthRedirectTo(),
+        shouldCreateUser: false,
       },
     });
 
@@ -268,6 +369,44 @@ export function PublicUserProvider({ children }: { children: ReactNode }) {
       throw normalizeAppError(error, "We could not send the magic link. Please try again.");
     }
   }, []);
+
+  const completeLegacyPasswordSetup = useCallback(
+    async (password: string) => {
+      if (!user) {
+        throw new Error("Sign in to continue.");
+      }
+
+      const { error: authError } = await supabase.auth.updateUser({
+        password,
+        data: {
+          ...(user.user_metadata ?? {}),
+          password_setup_completed: true,
+        },
+      });
+
+      if (authError) {
+        throw normalizeAppError(
+          authError,
+          "We could not finish setting your password. Please try again.",
+        );
+      }
+
+      await runMutation(() =>
+        updateWorkspaceProfile({
+          first_name: bootstrap.profile?.first_name || authProfileSeed.first_name,
+          last_name: bootstrap.profile?.last_name || authProfileSeed.last_name,
+          country: bootstrap.profile?.country || authProfileSeed.country,
+          phone_number: bootstrap.profile?.phone_number || authProfileSeed.phone_number,
+          updates_opt_in:
+            bootstrap.profile?.updates_opt_in ?? authProfileSeed.updates_opt_in,
+          user_type:
+            bootstrap.profile?.user_type === "business" ? "business" : "personal",
+          password_setup_completed: true,
+        }),
+      );
+    },
+    [authProfileSeed, bootstrap.profile, runMutation, user],
+  );
 
   const signOut = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
@@ -289,16 +428,22 @@ export function PublicUserProvider({ children }: { children: ReactNode }) {
       legacyPublicUserId,
       isAuthenticated: Boolean(user),
       authLoading,
+      authProfileSeed,
+      requiresPasswordSetup,
       bootstrap,
       loading,
       refreshing,
       saving,
-      signInWithMagicLink,
+      signUpWithPassword,
+      signInWithPassword,
+      resendVerificationEmail,
+      sendLegacyMagicLink,
+      completeLegacyPasswordSetup,
       signOut,
       refresh,
       completeOnboarding: async (payload) =>
         runMutation(() => completeOnboarding(payload, { legacyPublicUserId })),
-      updateProfile: async (payload) => runMutation(() => updateProfile(payload)),
+      updateProfile: async (payload) => runMutation(() => updateWorkspaceProfile(payload)),
       saveGoal: async (goal) => runMutation(() => saveGoal(goal)),
       deleteGoal: async (goalId) => runMutation(() => deleteGoal(goalId)),
       saveBudgetLimit: async (limit) => runMutation(() => saveBudgetLimit(limit)),
@@ -312,25 +457,27 @@ export function PublicUserProvider({ children }: { children: ReactNode }) {
     }),
     [
       authLoading,
+      authProfileSeed,
       bootstrap,
+      completeLegacyPasswordSetup,
       legacyPublicUserId,
       loading,
       refresh,
       refreshing,
+      resendVerificationEmail,
+      requiresPasswordSetup,
       runMutation,
       saving,
+      sendLegacyMagicLink,
       session,
-      signInWithMagicLink,
+      signInWithPassword,
       signOut,
+      signUpWithPassword,
       user,
     ],
   );
 
-  return (
-    <PublicUserContext.Provider value={value}>
-      {children}
-    </PublicUserContext.Provider>
-  );
+  return <PublicUserContext.Provider value={value}>{children}</PublicUserContext.Provider>;
 }
 
 export function usePublicUser() {
