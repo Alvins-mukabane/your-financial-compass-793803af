@@ -29,7 +29,12 @@ import evaAppIcon from "@/assets/eva-app-icon.png";
 import evaLockup from "@/assets/eva-lockup.png";
 import { COUNTRIES } from "@/lib/finance";
 import { cn } from "@/lib/utils";
-import { getPasswordStrength, isValidEmail, type PasswordStrengthLevel } from "@/lib/authProfile";
+import {
+  getAuthErrorMessage,
+  getPasswordStrength,
+  isValidEmail,
+  type PasswordStrengthLevel,
+} from "@/lib/authProfile";
 
 type AuthMode = "signin" | "signup" | "verify-email" | "set-password";
 type VerificationFlow = "signup" | "legacy";
@@ -37,37 +42,6 @@ type VerificationFlow = "signup" | "legacy";
 type AuthProps = {
   forcedMode?: AuthMode;
 };
-
-function getAuthErrorCode(error: unknown) {
-  if (error && typeof error === "object" && "code" in error && typeof error.code === "string") {
-    return error.code;
-  }
-
-  return "";
-}
-
-function getAuthErrorMessage(error: unknown, fallback: string) {
-  const message = error instanceof Error ? error.message : fallback;
-  const code = getAuthErrorCode(error);
-
-  if (code === "over_email_send_rate_limit") {
-    return "A verification email was already sent recently. Check your inbox or wait a minute, then try again.";
-  }
-
-  if (code === "email_not_confirmed") {
-    return "Verify your email before signing in. You can resend the verification email below.";
-  }
-
-  if (code === "email_exists" || code === "user_already_exists") {
-    return "That email already has an eva account. Sign in instead or resend verification if you have not confirmed it yet.";
-  }
-
-  if (code === "invalid_credentials" || /invalid login credentials/i.test(message)) {
-    return "That email or password did not match. If you just created your account, verify your email first or resend the verification email.";
-  }
-
-  return message;
-}
 
 function readLastEmail() {
   if (typeof window === "undefined") {

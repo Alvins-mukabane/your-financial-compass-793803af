@@ -86,6 +86,41 @@ export function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 }
 
+export function getAuthErrorCode(error: unknown) {
+  if (error && typeof error === "object" && "code" in error && typeof error.code === "string") {
+    return error.code;
+  }
+
+  return "";
+}
+
+export function getAuthErrorMessage(error: unknown, fallback: string) {
+  const message = error instanceof Error ? error.message : fallback;
+  const code = getAuthErrorCode(error);
+
+  if (code === "over_email_send_rate_limit") {
+    return "A verification email was already sent recently. Check your inbox or wait a minute, then try again.";
+  }
+
+  if (code === "email_not_confirmed") {
+    return "Verify your email before signing in. You can resend the verification email below.";
+  }
+
+  if (code === "email_exists" || code === "user_already_exists") {
+    return "That email already has an eva account. Sign in instead or resend verification if you have not confirmed it yet.";
+  }
+
+  if (code === "invalid_credentials" || /invalid login credentials/i.test(message)) {
+    return "That email or password did not match. If you just created your account, verify your email first or resend the verification email.";
+  }
+
+  if (/email rate limit exceeded/i.test(message)) {
+    return "A verification email was already sent recently. Check your inbox or wait a minute, then try again.";
+  }
+
+  return message;
+}
+
 export function getPasswordStrength(password: string) {
   const checks = {
     length: password.length >= 10,

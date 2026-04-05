@@ -40,6 +40,7 @@ import { handleAppError, normalizeAppError } from "@/lib/appErrors";
 import { getStoredPublicUserId } from "@/lib/publicUser";
 import {
   type AuthProfileSeed,
+  getAuthErrorMessage,
   getAuthProfileSeed,
   hasPasswordSetup,
   splitFullName,
@@ -310,7 +311,9 @@ export function PublicUserProvider({ children }: { children: ReactNode }) {
       });
 
       if (error) {
-        throw normalizeAppError(error, "We could not create your account. Please try again.");
+        throw new Error(
+          getAuthErrorMessage(error, "We could not create your account. Please try again."),
+        );
       }
     },
     [],
@@ -327,7 +330,7 @@ export function PublicUserProvider({ children }: { children: ReactNode }) {
     });
 
     if (error) {
-      throw normalizeAppError(error, "We could not sign you in. Please try again.");
+      throw new Error(getAuthErrorMessage(error, "We could not sign you in. Please try again."));
     }
   }, []);
 
@@ -345,9 +348,11 @@ export function PublicUserProvider({ children }: { children: ReactNode }) {
     });
 
     if (error) {
-      throw normalizeAppError(
-        error,
-        "We could not resend the verification email. Please try again.",
+      throw new Error(
+        getAuthErrorMessage(
+          error,
+          "We could not resend the verification email. Please try again.",
+        ),
       );
     }
   }, []);
@@ -366,7 +371,9 @@ export function PublicUserProvider({ children }: { children: ReactNode }) {
     });
 
     if (error) {
-      throw normalizeAppError(error, "We could not send the magic link. Please try again.");
+      throw new Error(
+        getAuthErrorMessage(error, "We could not send the magic link. Please try again."),
+      );
     }
   }, []);
 
@@ -385,9 +392,11 @@ export function PublicUserProvider({ children }: { children: ReactNode }) {
       });
 
       if (authError) {
-        throw normalizeAppError(
-          authError,
-          "We could not finish setting your password. Please try again.",
+        throw new Error(
+          getAuthErrorMessage(
+            authError,
+            "We could not finish setting your password. Please try again.",
+          ),
         );
       }
 
