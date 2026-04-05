@@ -38,6 +38,37 @@ type AuthProps = {
   forcedMode?: AuthMode;
 };
 
+function getAuthErrorCode(error: unknown) {
+  if (error && typeof error === "object" && "code" in error && typeof error.code === "string") {
+    return error.code;
+  }
+
+  return "";
+}
+
+function getAuthErrorMessage(error: unknown, fallback: string) {
+  const message = error instanceof Error ? error.message : fallback;
+  const code = getAuthErrorCode(error);
+
+  if (code === "over_email_send_rate_limit") {
+    return "A verification email was already sent recently. Check your inbox or wait a minute, then try again.";
+  }
+
+  if (code === "email_not_confirmed") {
+    return "Verify your email before signing in. You can resend the verification email below.";
+  }
+
+  if (code === "email_exists" || code === "user_already_exists") {
+    return "That email already has an eva account. Sign in instead or resend verification if you have not confirmed it yet.";
+  }
+
+  if (code === "invalid_credentials" || /invalid login credentials/i.test(message)) {
+    return "That email or password did not match. If you just created your account, verify your email first or resend the verification email.";
+  }
+
+  return message;
+}
+
 function readLastEmail() {
   if (typeof window === "undefined") {
     return "";
@@ -158,6 +189,31 @@ export default function Auth({ forcedMode }: AuthProps) {
     setSearchParams(next, { replace: true });
   };
 
+  const handleSignInResend = async () => {
+    const email = signInEmail.trim().toLowerCase();
+    if (!isValidEmail(email)) {
+      toast.error("Enter your email first so eva knows where to send the verification email.");
+      return;
+    }
+
+    setResending(true);
+    try {
+      await resendVerificationEmail(email);
+      persistLastEmail(email);
+      setMode("verify-email", { email, flow: "signup" });
+      toast.success("Verification email sent.");
+    } catch (error) {
+      toast.error(
+        getAuthErrorMessage(
+          error,
+          "We could not resend the verification email right now.",
+        ),
+      );
+    } finally {
+      setResending(false);
+    }
+  };
+
   const handleSignIn = async (event: React.FormEvent) => {
     event.preventDefault();
 
@@ -173,10 +229,14 @@ export default function Auth({ forcedMode }: AuthProps) {
       persistLastEmail(email);
       toast.success("Signed in successfully.");
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "We could not sign you in. Please try again.";
+      const message = getAuthErrorMessage(
+        error,
+        "We could not sign you in. Please try again.",
+      );
 
-      if (/email not confirmed|email.*not.*confirmed/i.test(message)) {
+      if (
+        /verify your email|email not confirmed|email.*not.*confirmed/i.test(message)
+      ) {
         persistLastEmail(email);
         setMode("verify-email", { email, flow: "signup" });
         toast.error("Verify your email to continue.");
@@ -211,9 +271,17 @@ export default function Auth({ forcedMode }: AuthProps) {
       setMode("verify-email", { email, flow: "signup" });
       toast.success("Check your inbox to verify your eva account.");
     } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "We could not create your account right now.",
+      const message = getAuthErrorMessage(
+        error,
+        "We could not create your account right now.",
       );
+      persistLastEmail(email);
+
+      if (/verification email was already sent recently/i.test(message)) {
+        setMode("verify-email", { email, flow: "signup" });
+      }
+
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }
@@ -236,9 +304,7 @@ export default function Auth({ forcedMode }: AuthProps) {
       toast.success("Verification email sent again.");
     } catch (error) {
       toast.error(
-        error instanceof Error
-          ? error.message
-          : "We could not resend the verification email right now.",
+        getAuthErrorMessage(error, "We could not resend the verification email right now."),
       );
     } finally {
       setResending(false);
@@ -411,6 +477,16 @@ export default function Auth({ forcedMode }: AuthProps) {
               <Button type="submit" size="lg" className="w-full gap-2" disabled={!signInReady || submitting}>
                 {submitting ? "Signing in..." : "Sign in"}
                 {!submitting && <ArrowRight className="h-4 w-4" />}
+              </Button>
+
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full text-primary"
+                onClick={handleSignInResend}
+                disabled={!isValidEmail(signInEmail) || resending}
+              >
+                {resending ? "Sending verification..." : "Resend verification email"}
               </Button>
 
               <div className="rounded-2xl border border-border bg-background/70 px-4 py-3">
