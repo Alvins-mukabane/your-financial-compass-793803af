@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -204,11 +204,92 @@ const subscriptionAwarenessOptions: Array<{
 ];
 
 const CHAT_STARTER_STORAGE_KEY = "eva-chat-starter";
+const ONBOARDING_DRAFT_STORAGE_KEY = "eva-onboarding-draft";
+
+type OnboardingDraft = {
+  stepIndex: number;
+  profile: {
+    first_name: string;
+    last_name: string;
+    country: string;
+    phone_number: string;
+    user_type: "personal" | "business";
+    updates_opt_in: boolean;
+    password_setup_completed: boolean;
+    cash_balance: string;
+    monthly_income: string;
+    monthly_fixed_expenses: string;
+  };
+  intentFocus: IntentFocus | null;
+  biggestProblem: BiggestProblem | null;
+  moneyStyle: MoneyStyle | null;
+  guidanceStyle: GuidanceStyle;
+  goalFocus: GoalFocus | null;
+  targetMonthlySavings: string;
+  subscriptionAwareness: SubscriptionAwareness;
+  budgetForm: {
+    category: string;
+    monthly_limit: string;
+  };
+  budgetLimits: Array<{ id: string; category: string; monthly_limit: string }>;
+  subscriptionForm: {
+    name: string;
+    price: string;
+    billing_cycle: "monthly" | "yearly";
+    category: string;
+  };
+  subscriptions: Array<{
+    id: string;
+    name: string;
+    price: string;
+    billing_cycle: "monthly" | "yearly";
+    category: string;
+  }>;
+  manualAssets: AssetEntry[];
+  manualLiabilities: LiabilityEntry[];
+  showBalanceSheet: boolean;
+  showSubscriptions: boolean;
+  showBudgets: boolean;
+  firstActionPrompt: string;
+};
 
 function addMonths(date: Date, months: number) {
   const next = new Date(date);
   next.setMonth(next.getMonth() + months);
   return next;
+}
+
+function getOnboardingDraftKey(userId: string) {
+  return `${ONBOARDING_DRAFT_STORAGE_KEY}:${userId}`;
+}
+
+function readOnboardingDraft(userId: string) {
+  if (typeof window === "undefined" || !userId) {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(getOnboardingDraftKey(userId));
+    return raw ? (JSON.parse(raw) as OnboardingDraft) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeOnboardingDraft(userId: string, draft: OnboardingDraft) {
+  if (typeof window === "undefined" || !userId) {
+    return;
+  }
+
+  window.localStorage.setItem(getOnboardingDraftKey(userId), JSON.stringify(draft));
+}
+
+function clearOnboardingDraft(userId: string) {
+  if (typeof window === "undefined" || !userId) {
+    return;
+  }
+
+  window.localStorage.removeItem(getOnboardingDraftKey(userId));
 }
 
 function SelectionCard({
@@ -249,10 +330,27 @@ function SelectionCard({
   );
 }
 
+function StepBackButton({
+  onClick,
+  label = "Back",
+}: {
+  onClick: () => void;
+  label?: string;
+}) {
+  return (
+    <Button type="button" variant="ghost" className="gap-2 px-2" onClick={onClick}>
+      <ArrowLeft className="h-4 w-4" />
+      {label}
+    </Button>
+  );
+}
+
 export default function Onboarding() {
   const navigate = useNavigate();
   const { authProfileSeed, bootstrap, completeOnboarding, saving, user } = usePublicUser();
+  const draftReadyRef = useRef(false);
   const [stepIndex, setStepIndex] = useState(0);
+  const [draftNotice, setDraftNotice] = useState("Autosaves as you go");
   const [profile, setProfile] = useState(() => ({
     first_name: bootstrap.profile?.first_name || authProfileSeed.first_name,
     last_name: bootstrap.profile?.last_name || authProfileSeed.last_name,
@@ -307,6 +405,14 @@ export default function Onboarding() {
   const [firstActionPrompt, setFirstActionPrompt] = useState("");
 
   const currentStep = steps[stepIndex];
+  const goBack = () => {
+    if (stepIndex === 0) {
+      navigate("/");
+      return;
+    }
+
+    setStepIndex((current) => Math.max(current - 1, 0));
+  };
 
   useEffect(() => {
     setProfile((current) => ({
@@ -330,6 +436,100 @@ export default function Onboarding() {
           : current.user_type,
     }));
   }, [authProfileSeed, bootstrap.profile]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      draftReadyRef.current = false;
+      setDraftNotice("Autosaves as you go");
+      return;
+    }
+
+    if (bootstrap.has_onboarded) {
+      clearOnboardingDraft(user.id);
+      draftReadyRef.current = true;
+      setDraftNotice("Onboarding complete");
+      return;
+    }
+
+    const draft = readOnboardingDraft(user.id);
+    if (draft) {
+      setStepIndex(Math.min(Math.max(draft.stepIndex, 0), steps.length - 1));
+      setProfile(draft.profile);
+      setIntentFocus(draft.intentFocus);
+      setBiggestProblem(draft.biggestProblem);
+      setMoneyStyle(draft.moneyStyle);
+      setGuidanceStyle(draft.guidanceStyle);
+      setGoalFocus(draft.goalFocus);
+      setTargetMonthlySavings(draft.targetMonthlySavings);
+      setSubscriptionAwareness(draft.subscriptionAwareness);
+      setBudgetForm(draft.budgetForm);
+      setBudgetLimits(draft.budgetLimits);
+      setSubscriptionForm(draft.subscriptionForm);
+      setSubscriptions(draft.subscriptions);
+      setManualAssets(draft.manualAssets);
+      setManualLiabilities(draft.manualLiabilities);
+      setShowBalanceSheet(draft.showBalanceSheet);
+      setShowSubscriptions(draft.showSubscriptions);
+      setShowBudgets(draft.showBudgets);
+      setFirstActionPrompt(draft.firstActionPrompt);
+      setDraftNotice("Draft restored");
+    } else {
+      setDraftNotice("Autosaves as you go");
+    }
+
+    draftReadyRef.current = true;
+  }, [bootstrap.has_onboarded, user?.id]);
+
+  useEffect(() => {
+    if (!draftReadyRef.current || !user?.id || bootstrap.has_onboarded) {
+      return;
+    }
+
+    writeOnboardingDraft(user.id, {
+      stepIndex,
+      profile,
+      intentFocus,
+      biggestProblem,
+      moneyStyle,
+      guidanceStyle,
+      goalFocus,
+      targetMonthlySavings,
+      subscriptionAwareness,
+      budgetForm,
+      budgetLimits,
+      subscriptionForm,
+      subscriptions,
+      manualAssets,
+      manualLiabilities,
+      showBalanceSheet,
+      showSubscriptions,
+      showBudgets,
+      firstActionPrompt,
+    });
+    setDraftNotice("Saved automatically");
+  }, [
+    bootstrap.has_onboarded,
+    budgetForm,
+    budgetLimits,
+    biggestProblem,
+    firstActionPrompt,
+    goalFocus,
+    guidanceStyle,
+    intentFocus,
+    manualAssets,
+    manualLiabilities,
+    moneyStyle,
+    profile,
+    showBalanceSheet,
+    showBudgets,
+    showSubscriptions,
+    stepIndex,
+    subscriptionAwareness,
+    subscriptionForm,
+    subscriptions,
+    targetMonthlySavings,
+    user?.id,
+  ]);
 
   const monthlySubscriptionTotal = useMemo(
     () =>
@@ -516,6 +716,10 @@ export default function Onboarding() {
         })),
       });
 
+      if (user?.id) {
+        clearOnboardingDraft(user.id);
+      }
+
       toast.success("Your workspace is ready.");
 
       if (route === "chat" && autoStartPrompt) {
@@ -558,24 +762,27 @@ export default function Onboarding() {
           <div className="mb-6 flex items-center justify-between gap-4">
             <button
               type="button"
-              onClick={() =>
-                stepIndex === 0 ? navigate("/") : setStepIndex((current) => Math.max(current - 1, 0))
-              }
+              onClick={goBack}
               className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               {stepIndex === 0 ? "Back home" : "Back"}
             </button>
 
-            <div className="flex items-center gap-2">
-              {steps.map((step, index) => (
-                <div
-                  key={step.id}
-                  className={`h-2.5 w-10 rounded-full transition-colors ${
-                    index <= stepIndex ? "bg-primary" : "bg-secondary"
-                  }`}
-                />
-              ))}
+            <div className="flex flex-col items-end gap-2">
+              <div className="flex items-center gap-2">
+                {steps.map((step, index) => (
+                  <div
+                    key={step.id}
+                    className={`h-2.5 w-10 rounded-full transition-colors ${
+                      index <= stepIndex ? "bg-primary" : "bg-secondary"
+                    }`}
+                  />
+                ))}
+              </div>
+              <p className="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                {draftNotice}
+              </p>
             </div>
           </div>
 
@@ -601,6 +808,9 @@ export default function Onboarding() {
                 Get Started
                 <ArrowRight className="h-4 w-4" />
               </Button>
+              <div className="flex justify-center">
+                <StepBackButton onClick={goBack} label="Back home" />
+              </div>
             </div>
           )}
 
@@ -626,6 +836,9 @@ export default function Onboarding() {
                   />
                 ))}
               </div>
+              <div className="flex justify-start">
+                <StepBackButton onClick={goBack} />
+              </div>
             </div>
           )}
 
@@ -649,6 +862,9 @@ export default function Onboarding() {
                     onClick={() => selectAndAdvance(setBiggestProblem, option.value)}
                   />
                 ))}
+              </div>
+              <div className="flex justify-start">
+                <StepBackButton onClick={goBack} />
               </div>
             </div>
           )}
@@ -694,7 +910,8 @@ export default function Onboarding() {
                 </div>
               </div>
 
-              <div className="flex justify-end">
+              <div className="flex items-center justify-between">
+                <StepBackButton onClick={goBack} />
                 <Button onClick={moveToNext} disabled={!canContinue()} className="gap-2">
                   Continue
                   <ArrowRight className="h-4 w-4" />
@@ -759,7 +976,8 @@ export default function Onboarding() {
                 </div>
               </div>
 
-              <div className="flex justify-end">
+              <div className="flex items-center justify-between">
+                <StepBackButton onClick={goBack} />
                 <Button onClick={moveToNext} disabled={!canContinue()} className="gap-2">
                   Continue
                   <ArrowRight className="h-4 w-4" />
@@ -1172,6 +1390,8 @@ export default function Onboarding() {
               </div>
 
               <div className="flex items-center justify-between">
+                <StepBackButton onClick={goBack} />
+                <div className="flex items-center gap-3">
                 <button
                   type="button"
                   onClick={() => moveToNext()}
@@ -1183,6 +1403,7 @@ export default function Onboarding() {
                   Continue
                   <ArrowRight className="h-4 w-4" />
                 </Button>
+                </div>
               </div>
             </div>
           )}
@@ -1231,6 +1452,8 @@ export default function Onboarding() {
                   className="min-h-[130px] w-full rounded-[1.2rem] border border-border bg-card px-4 py-3 text-sm outline-none transition focus:ring-1 focus:ring-primary/40"
                 />
                 <div className="flex items-center justify-between">
+                  <StepBackButton onClick={goBack} />
+                  <div className="flex items-center gap-3">
                   <button
                     type="button"
                     onClick={() => finishOnboarding({ route: "dashboard" })}
@@ -1255,6 +1478,7 @@ export default function Onboarding() {
                     {saving ? "Starting..." : "Start with this expense"}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
+                  </div>
                 </div>
               </div>
 

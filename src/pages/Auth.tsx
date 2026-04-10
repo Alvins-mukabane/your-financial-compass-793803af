@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -38,6 +38,8 @@ import {
 
 type AuthMode = "signin" | "signup" | "verify-email" | "set-password";
 type VerificationFlow = "signup" | "legacy";
+const VERIFY_EMAIL_AUTO_RESEND_KEY = "eva-pending-verification-email";
+const VERIFY_EMAIL_AUTO_RESEND_DELAY_SECONDS = 12;
 
 type AuthProps = {
   forcedMode?: AuthMode;
@@ -57,6 +59,45 @@ function persistLastEmail(email: string) {
   }
 
   window.localStorage.setItem("eva-last-email", email);
+}
+
+function queueVerificationAutoResend(email: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.sessionStorage.setItem(
+    VERIFY_EMAIL_AUTO_RESEND_KEY,
+    JSON.stringify({
+      email: email.trim().toLowerCase(),
+      queuedAt: Date.now(),
+    }),
+  );
+}
+
+function consumeVerificationAutoResend(email: string) {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  try {
+    const raw = window.sessionStorage.getItem(VERIFY_EMAIL_AUTO_RESEND_KEY);
+    if (!raw) {
+      return false;
+    }
+
+    const parsed = JSON.parse(raw) as { email?: string; queuedAt?: number };
+    window.sessionStorage.removeItem(VERIFY_EMAIL_AUTO_RESEND_KEY);
+
+    if (parsed.email !== email.trim().toLowerCase()) {
+      return false;
+    }
+
+    return typeof parsed.queuedAt === "number" && Date.now() - parsed.queuedAt < 5 * 60_000;
+  } catch {
+    window.sessionStorage.removeItem(VERIFY_EMAIL_AUTO_RESEND_KEY);
+    return false;
+  }
 }
 
 function getMode(value: string | null): AuthMode {
@@ -106,6 +147,10 @@ export default function Auth({ forcedMode }: AuthProps) {
     password: "",
     confirm_password: "",
   });
+  const [autoResendCountdown, setAutoResendCountdown] = useState<number | null>(null);
+  const [autoResendState, setAutoResendState] = useState<
+    "idle" | "countdown" | "sending" | "sent" | "error"
+  >("idle");
 
   const currentMode = forcedMode ?? getMode(searchParams.get("mode"));
   const verificationEmail = (searchParams.get("email") ?? readLastEmail()).trim().toLowerCase();
@@ -162,6 +207,25 @@ export default function Auth({ forcedMode }: AuthProps) {
     });
     setSearchParams(next, { replace: true });
   };
+
+  const triggerVerificationDelivery = useCallback(
+    async ({
+      email,
+      flow,
+    }: {
+      email: string;
+      flow: VerificationFlow;
+    }) => {
+      if (flow === "legacy") {
+        await sendLegacyMagicLink(email);
+      } else {
+        await resendVerificationEmail(email);
+      }
+
+      persistLastEmail(email);
+    },
+    [resendVerificationEmail, sendLegacyMagicLink],
+  );
 
   const handleSignInResend = async () => {
     const email = signInEmail.trim().toLowerCase();
@@ -242,6 +306,7 @@ export default function Auth({ forcedMode }: AuthProps) {
         updates_opt_in: signUpForm.updates_opt_in,
       });
       persistLastEmail(email);
+      queueVerificationAutoResend(email);
       setMode("verify-email", { email, flow: "signup" });
       toast.success("Check your inbox to verify your eva account.");
     } catch (error) {
@@ -269,12 +334,10 @@ export default function Auth({ forcedMode }: AuthProps) {
 
     setResending(true);
     try {
-      if (verificationFlow === "legacy") {
-        await sendLegacyMagicLink(verificationEmail);
-      } else {
-        await resendVerificationEmail(verificationEmail);
-      }
-      persistLastEmail(verificationEmail);
+      await triggerVerificationDelivery({
+        email: verificationEmail,
+        flow: verificationFlow,
+      });
       toast.success("Verification email sent again.");
     } catch (error) {
       toast.error(
@@ -329,6 +392,62 @@ export default function Auth({ forcedMode }: AuthProps) {
       setSubmitting(false);
     }
   };
+
+  useEffect(() => {
+    if (
+      currentMode !== "verify-email" ||
+      verificationFlow !== "signup" ||
+      !verificationEmail ||
+      !isValidEmail(verificationEmail)
+    ) {
+      setAutoResendCountdown(null);
+      setAutoResendState("idle");
+      return;
+    }
+
+    if (!consumeVerificationAutoResend(verificationEmail)) {
+      setAutoResendCountdown(null);
+      setAutoResendState("idle");
+      return;
+    }
+
+    let remaining = VERIFY_EMAIL_AUTO_RESEND_DELAY_SECONDS;
+    setAutoResendCountdown(remaining);
+    setAutoResendState("countdown");
+
+    const intervalId = window.setInterval(() => {
+      remaining -= 1;
+
+      if (remaining <= 0) {
+        window.clearInterval(intervalId);
+        setAutoResendCountdown(0);
+        setAutoResendState("sending");
+
+        void triggerVerificationDelivery({
+          email: verificationEmail,
+          flow: "signup",
+        })
+          .then(() => {
+            setAutoResendState("sent");
+            toast.success("A second verification email is on the way.");
+          })
+          .catch((error) => {
+            setAutoResendState("error");
+            toast.error(
+              getAuthErrorMessage(
+                error,
+                "We could not send another verification email right now.",
+              ),
+            );
+          });
+        return;
+      }
+
+      setAutoResendCountdown(remaining);
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, [currentMode, triggerVerificationDelivery, verificationEmail, verificationFlow]);
 
   const passwordChecks = currentMode === "set-password"
     ? setPasswordStrength.checks
@@ -770,6 +889,10 @@ export default function Auth({ forcedMode }: AuthProps) {
                     <ArrowRight className="mt-0.5 h-4 w-4 text-primary" />
                     <span>New users go to onboarding. Existing verified users go to their workspace.</span>
                   </div>
+                  <div className="flex items-start gap-2">
+                    <RefreshCw className="mt-0.5 h-4 w-4 text-primary" />
+                    <span>Check your inbox, spam, and promotions tabs. eva will send a second copy automatically if the first one does not land quickly.</span>
+                  </div>
                 </div>
               </div>
 
@@ -789,6 +912,20 @@ export default function Auth({ forcedMode }: AuthProps) {
                   </Button>
                 )}
               </div>
+
+              {verificationFlow === "signup" && (
+                <p className="text-xs text-muted-foreground">
+                  {autoResendState === "countdown" && autoResendCountdown !== null
+                    ? `If the email does not arrive quickly, eva will send another copy in ${autoResendCountdown}s.`
+                    : autoResendState === "sending"
+                      ? "Sending another verification email now..."
+                      : autoResendState === "sent"
+                        ? "A second verification email was sent. Check inbox, spam, and promotions."
+                        : autoResendState === "error"
+                          ? "Automatic resend did not go through. You can use the resend button above."
+                          : "Verification emails should arrive within seconds. If not, use resend and check spam or promotions."}
+                </p>
+              )}
             </div>
           )}
 
