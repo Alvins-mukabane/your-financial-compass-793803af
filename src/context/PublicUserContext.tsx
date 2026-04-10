@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -45,6 +46,7 @@ import {
   hasPasswordSetup,
   splitFullName,
 } from "@/lib/authProfile";
+import { resolveTrustedSession } from "@/lib/authSession";
 
 type SignUpPayload = {
   full_name: string;
@@ -137,6 +139,7 @@ export function PublicUserProvider({ children }: { children: ReactNode }) {
   const [workspaceLoading, setWorkspaceLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const authResolutionId = useRef(0);
 
   const authProfileSeed = useMemo(() => getAuthProfileSeed(user), [user]);
   const requiresPasswordSetup = useMemo(
@@ -179,6 +182,52 @@ export function PublicUserProvider({ children }: { children: ReactNode }) {
     console.warn(message);
   }, []);
 
+  const syncAuthState = useCallback(async (nextSession: Session | null) => {
+    const resolutionId = authResolutionId.current + 1;
+    authResolutionId.current = resolutionId;
+
+    if (!nextSession) {
+      setSession(null);
+      setUser(null);
+      setAuthLoading(false);
+      return;
+    }
+
+    setAuthLoading(true);
+
+    try {
+      const trusted = await resolveTrustedSession(nextSession, {
+        attempts: 3,
+        waitMs: 1500,
+      });
+
+      if (authResolutionId.current !== resolutionId) {
+        return;
+      }
+
+      if (!trusted.session || !trusted.user) {
+        await supabase.auth.signOut().catch(() => undefined);
+        setSession(null);
+        setUser(null);
+        return;
+      }
+
+      setSession(trusted.session);
+      setUser(trusted.user);
+    } catch {
+      if (authResolutionId.current !== resolutionId) {
+        return;
+      }
+
+      setSession(nextSession);
+      setUser(nextSession.user ?? null);
+    } finally {
+      if (authResolutionId.current === resolutionId) {
+        setAuthLoading(false);
+      }
+    }
+  }, []);
+
   const initialize = useCallback(
     async (activeUser: User | null) => {
       if (!activeUser) {
@@ -210,28 +259,20 @@ export function PublicUserProvider({ children }: { children: ReactNode }) {
           return;
         }
 
-        setSession(data.session ?? null);
-        setUser(data.session?.user ?? null);
-      })
-      .finally(() => {
-        if (isMounted) {
-          setAuthLoading(false);
-        }
+        return syncAuthState(data.session ?? null);
       });
 
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession ?? null);
-      setUser(nextSession?.user ?? null);
-      setAuthLoading(false);
+      void syncAuthState(nextSession ?? null);
     });
 
     return () => {
       isMounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [syncAuthState]);
 
   useEffect(() => {
     if (authLoading) {

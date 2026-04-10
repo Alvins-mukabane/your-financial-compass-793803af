@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { ensureOnline, normalizeAppError } from "@/lib/appErrors";
+import { getTrustedAccessToken } from "@/lib/authSession";
 
 type EdgeFunctionErrorPayload = {
   error?: string;
@@ -12,10 +13,6 @@ const FUNCTIONS_BASE_URL = import.meta.env.VITE_SUPABASE_URL
 
 const FUNCTIONS_API_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ?? "";
 
-function sleep(ms: number) {
-  return new Promise((resolve) => window.setTimeout(resolve, ms));
-}
-
 async function getAccessToken({
   waitForSession = false,
   allowRefresh = false,
@@ -27,23 +24,22 @@ async function getAccessToken({
 
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     const sessionResult = await supabase.auth.getSession();
-    const accessToken = sessionResult.data.session?.access_token ?? null;
+    const currentSession = sessionResult.data.session ?? null;
 
-    if (accessToken) {
-      return accessToken;
-    }
+    if (currentSession) {
+      const trustedToken = await getTrustedAccessToken({
+        initialSession: currentSession,
+        attempts: allowRefresh ? 2 : 1,
+        waitMs: 1400,
+      });
 
-    if (allowRefresh) {
-      const refreshResult = await supabase.auth.refreshSession();
-      const refreshedToken = refreshResult.data.session?.access_token ?? null;
-
-      if (refreshedToken) {
-        return refreshedToken;
+      if (trustedToken) {
+        return trustedToken;
       }
     }
 
     if (attempt < attempts - 1) {
-      await sleep(900);
+      await new Promise((resolve) => window.setTimeout(resolve, 900));
     }
   }
 
@@ -99,8 +95,8 @@ export async function invokeEdgeFunction<T>(
     let result = await invokeEdgeFunctionRequest<T>(functionName, body, initialAccessToken);
 
     if (result.response.status === 401) {
-      // Freshly verified email sessions can arrive a moment before the token is usable.
-      await sleep(2500);
+      // Freshly verified email sessions can need one auth-server round trip before function JWT checks pass.
+      await new Promise((resolve) => window.setTimeout(resolve, 2500));
       const retryAccessToken = await getAccessToken({
         waitForSession: true,
         allowRefresh: true,

@@ -1,5 +1,5 @@
 import { ensureOnline, getDisplayErrorMessage, handleAppError } from "@/lib/appErrors";
-import { supabase } from "@/integrations/supabase/client";
+import { getTrustedAccessToken } from "@/lib/authSession";
 
 export type Msg = { role: "user" | "assistant"; content: string };
 
@@ -26,8 +26,7 @@ export async function streamChat({
   onError: (err: string) => void;
   onSpendingParsed?: (data: ParsedSpending) => void;
 }) {
-  const sessionResult = await supabase.auth.getSession();
-  const accessToken = token ?? sessionResult.data.session?.access_token;
+  const accessToken = token ?? (await getTrustedAccessToken({ attempts: 2, waitMs: 1400 }));
 
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
