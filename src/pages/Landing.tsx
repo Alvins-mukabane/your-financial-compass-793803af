@@ -5,9 +5,10 @@ import { TrendingUp, Brain, Shield, Target, ArrowRight, Sparkles } from "lucide-
 import FAQSection from "@/components/FAQSection";
 import { landingFAQs } from "@/data/faqData";
 import SEO, { generateFAQSchema, generateOrganizationSchema } from "@/components/SEO";
-import evaLockup from "@/assets/eva-lockup.png";
 import evaAppIcon from "@/assets/eva-app-icon.png";
 import { usePublicUser } from "@/context/PublicUserContext";
+
+const evaLogoSrc = "/eva-logo.png";
 
 const features = [
   { icon: Brain, title: "AI-Powered Insights", desc: "Understand your money with clear advice on spending patterns, habits, and next best moves." },
@@ -54,7 +55,7 @@ export default function Landing() {
         </div>
 
         <nav className="sticky top-0 z-20 mx-auto flex max-w-[1200px] items-center justify-between border-b border-border/70 bg-background/78 px-6 py-4 backdrop-blur-xl">
-            <img src={evaLockup} alt="eva" className="h-9 w-auto object-contain md:h-10" />
+            <img src={evaLogoSrc} alt="eva" className="h-9 w-auto object-contain md:h-10" />
           <div className="flex items-center gap-3">
             <Link to={isAuthenticated ? workspacePath : signInPath}>
               <Button variant="ghost" size="sm">{isAuthenticated ? "Workspace" : "Sign in"}</Button>
@@ -80,7 +81,7 @@ export default function Landing() {
             </div>
 
             <div className="flex justify-center">
-              <img src={evaLockup} alt="eva logo" className="h-16 w-auto object-contain md:h-20" />
+              <img src={evaLogoSrc} alt="eva logo" className="h-16 w-auto object-contain md:h-20" />
             </div>
 
             <h1 className="mx-auto max-w-4xl text-balance text-4xl font-bold leading-[1.05] text-foreground md:text-6xl">
