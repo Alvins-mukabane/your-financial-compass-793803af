@@ -21,6 +21,7 @@ serve(async (req) => {
   }
 
   try {
+    // Keep action parsing centralized so bootstrap remains the default for new auth flows.
     const body = await req.json().catch(() => ({}));
     const action = String(body.action ?? "bootstrap");
     const legacyPublicUserId = getLegacyPublicUserId(body.legacy_public_user_id);

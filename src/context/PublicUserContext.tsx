@@ -57,6 +57,10 @@ type SignUpPayload = {
   updates_opt_in: boolean;
 };
 
+type SignUpResult = {
+  requiresEmailVerification: boolean;
+};
+
 type PublicUserContextValue = {
   session: Session | null;
   user: User | null;
@@ -70,7 +74,7 @@ type PublicUserContextValue = {
   loading: boolean;
   refreshing: boolean;
   saving: boolean;
-  signUpWithPassword: (payload: SignUpPayload) => Promise<void>;
+  signUpWithPassword: (payload: SignUpPayload) => Promise<SignUpResult>;
   signInWithPassword: (email: string, password: string) => Promise<void>;
   resendVerificationEmail: (email: string) => Promise<void>;
   sendLegacyMagicLink: (email: string) => Promise<void>;
@@ -328,13 +332,13 @@ export function PublicUserProvider({ children }: { children: ReactNode }) {
       phone_number,
       password,
       updates_opt_in,
-    }: SignUpPayload) => {
+    }: SignUpPayload): Promise<SignUpResult> => {
       if (!hasSupabaseConfig) {
         throw new Error(SUPABASE_SETUP_MESSAGE);
       }
 
       const { first_name, last_name } = splitFullName(full_name);
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -356,6 +360,10 @@ export function PublicUserProvider({ children }: { children: ReactNode }) {
           getAuthErrorMessage(error, "We could not create your account. Please try again."),
         );
       }
+
+      return {
+        requiresEmailVerification: !data.session,
+      };
     },
     [],
   );

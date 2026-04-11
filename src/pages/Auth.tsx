@@ -122,14 +122,12 @@ export default function Auth({ forcedMode }: AuthProps) {
     authProfileSeed,
     completeLegacyPasswordSetup,
     resendVerificationEmail,
-    sendLegacyMagicLink,
     signInWithPassword,
     signUpWithPassword,
   } = usePublicUser();
   const [searchParams, setSearchParams] = useSearchParams();
   const [submitting, setSubmitting] = useState(false);
   const [resending, setResending] = useState(false);
-  const [legacySending, setLegacySending] = useState(false);
   const [signInEmail, setSignInEmail] = useState(() => readLastEmail());
   const [signInPassword, setSignInPassword] = useState("");
   const [signUpForm, setSignUpForm] = useState({
@@ -190,7 +188,7 @@ export default function Auth({ forcedMode }: AuthProps) {
       return "This is a one-time step for earlier magic-link users. Add a strong password so future sign-ins are simple and consistent.";
     }
 
-    return "Sign in with your email and password. If you are coming from the older magic-link flow, there is a fallback link below.";
+    return "Sign in with your email and password to continue into your eva workspace.";
   }, [currentMode, verificationEmail, verificationFlow]);
 
   const setMode = (mode: AuthMode, extras?: Record<string, string>) => {
@@ -217,14 +215,14 @@ export default function Auth({ forcedMode }: AuthProps) {
       flow: VerificationFlow;
     }) => {
       if (flow === "legacy") {
-        await sendLegacyMagicLink(email);
-      } else {
-        await resendVerificationEmail(email);
+        throw new Error("Legacy sign-in links are no longer available from the sign-in page.");
       }
+
+      await resendVerificationEmail(email);
 
       persistLastEmail(email);
     },
-    [resendVerificationEmail, sendLegacyMagicLink],
+    [resendVerificationEmail],
   );
 
   const handleSignInResend = async () => {
@@ -297,7 +295,7 @@ export default function Auth({ forcedMode }: AuthProps) {
 
     setSubmitting(true);
     try {
-      await signUpWithPassword({
+      const result = await signUpWithPassword({
         full_name: signUpForm.full_name.trim(),
         email,
         country: signUpForm.country,
@@ -306,9 +304,14 @@ export default function Auth({ forcedMode }: AuthProps) {
         updates_opt_in: signUpForm.updates_opt_in,
       });
       persistLastEmail(email);
-      queueVerificationAutoResend(email);
-      setMode("verify-email", { email, flow: "signup" });
-      toast.success("Check your inbox to verify your eva account.");
+
+      if (result.requiresEmailVerification) {
+        queueVerificationAutoResend(email);
+        setMode("verify-email", { email, flow: "signup" });
+        toast.success("Check your inbox to verify your eva account.");
+      } else {
+        toast.success("Account created. Loading your onboarding...");
+      }
     } catch (error) {
       const message = getAuthErrorMessage(
         error,
@@ -345,28 +348,6 @@ export default function Auth({ forcedMode }: AuthProps) {
       );
     } finally {
       setResending(false);
-    }
-  };
-
-  const handleLegacyMagicLink = async () => {
-    const email = signInEmail.trim().toLowerCase();
-    if (!isValidEmail(email)) {
-      toast.error("Enter your email first so we know where to send the sign-in link.");
-      return;
-    }
-
-    setLegacySending(true);
-    try {
-      await sendLegacyMagicLink(email);
-      persistLastEmail(email);
-      setMode("verify-email", { email, flow: "legacy" });
-      toast.success("Legacy sign-in link sent.");
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "We could not send the sign-in link right now.",
-      );
-    } finally {
-      setLegacySending(false);
     }
   };
 
@@ -581,23 +562,6 @@ export default function Auth({ forcedMode }: AuthProps) {
               >
                 {resending ? "Sending verification..." : "Resend verification email"}
               </Button>
-
-              <div className="rounded-2xl border border-border bg-background/70 px-4 py-3">
-                <p className="text-sm font-medium text-foreground">Earlier eva account?</p>
-                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                  If you started with the old magic-link flow, use this one-time fallback and eva
-                  will guide you into password setup after verification.
-                </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="mt-3 w-full"
-                  onClick={handleLegacyMagicLink}
-                  disabled={legacySending}
-                >
-                  {legacySending ? "Sending sign-in link..." : "Use a sign-in link instead"}
-                </Button>
-              </div>
 
               <p className="text-sm text-muted-foreground">
                 Don&apos;t have an account?{" "}
