@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -8,32 +9,35 @@ import Layout from "@/components/Layout";
 import PwaRuntime from "@/components/PwaRuntime";
 import { PublicUserProvider, usePublicUser } from "@/context/PublicUserContext";
 import Landing from "@/pages/Landing";
-import Dashboard from "@/pages/Dashboard";
-import Chat from "@/pages/Chat";
-import Transactions from "@/pages/Transactions";
-import Goals from "@/pages/Goals";
-import Settings from "@/pages/Settings";
-import FinancialStatement from "@/pages/FinancialStatement";
-import Insights from "@/pages/Insights";
-import News from "@/pages/News";
-import StockPicks from "@/pages/StockPicks";
-import Subscriptions from "@/pages/Subscriptions";
-import Terms from "@/pages/Terms";
-import Privacy from "@/pages/Privacy";
-import NotFound from "@/pages/NotFound";
-import Install from "@/pages/Install";
-import Budget from "@/pages/Budget";
-import SpendingHistory from "@/pages/SpendingHistory";
-import Onboarding from "@/pages/Onboarding";
-import Auth from "@/pages/Auth";
+
+const pageLoaders = import.meta.glob<{ default: React.ComponentType<any> }>(
+  "./pages/{Auth,Budget,Chat,Dashboard,FinancialStatement,Goals,Insights,Install,News,NotFound,Onboarding,Privacy,Settings,SpendingHistory,StockPicks,Subscriptions,Terms,Transactions}.tsx",
+);
+
+function lazyPage(path: keyof typeof pageLoaders) {
+  return lazy(pageLoaders[path]);
+}
+
+const Dashboard = lazyPage("./pages/Dashboard.tsx");
+const Chat = lazyPage("./pages/Chat.tsx");
+const Transactions = lazyPage("./pages/Transactions.tsx");
+const Goals = lazyPage("./pages/Goals.tsx");
+const Settings = lazyPage("./pages/Settings.tsx");
+const FinancialStatement = lazyPage("./pages/FinancialStatement.tsx");
+const Insights = lazyPage("./pages/Insights.tsx");
+const News = lazyPage("./pages/News.tsx");
+const StockPicks = lazyPage("./pages/StockPicks.tsx");
+const Subscriptions = lazyPage("./pages/Subscriptions.tsx");
+const Terms = lazyPage("./pages/Terms.tsx");
+const Privacy = lazyPage("./pages/Privacy.tsx");
+const NotFound = lazyPage("./pages/NotFound.tsx");
+const Install = lazyPage("./pages/Install.tsx");
+const Budget = lazyPage("./pages/Budget.tsx");
+const SpendingHistory = lazyPage("./pages/SpendingHistory.tsx");
+const Onboarding = lazyPage("./pages/Onboarding.tsx");
+const Auth = lazyPage("./pages/Auth.tsx");
 
 const queryClient = new QueryClient();
-
-const AppPage = ({ children }: { children: React.ReactNode }) => (
-  <>
-    <Layout>{children}</Layout>
-  </>
-);
 
 function FullPageLoading() {
   return (
@@ -45,6 +49,16 @@ function FullPageLoading() {
     </div>
   );
 }
+
+function RouteSuspense({ children }: { children: React.ReactNode }) {
+  return <Suspense fallback={<FullPageLoading />}>{children}</Suspense>;
+}
+
+const AppPage = ({ children }: { children: React.ReactNode }) => (
+  <Layout>
+    <RouteSuspense>{children}</RouteSuspense>
+  </Layout>
+);
 
 function ProtectedPage({ children }: { children: React.ReactNode }) {
   const { bootstrap, isAuthenticated, loading, requiresPasswordSetup } = usePublicUser();
@@ -88,7 +102,11 @@ function OnboardingPage() {
     return <Navigate to="/dashboard" replace />;
   }
 
-  return <Onboarding />;
+  return (
+    <RouteSuspense>
+      <Onboarding />
+    </RouteSuspense>
+  );
 }
 
 function AuthPage() {
@@ -100,12 +118,20 @@ function AuthPage() {
 
   if (isAuthenticated) {
     if (requiresPasswordSetup) {
-      return <Auth forcedMode="set-password" />;
+      return (
+        <RouteSuspense>
+          <Auth forcedMode="set-password" />
+        </RouteSuspense>
+      );
     }
     return <Navigate to={bootstrap.has_onboarded ? "/dashboard" : "/onboarding"} replace />;
   }
 
-  return <Auth />;
+  return (
+    <RouteSuspense>
+      <Auth />
+    </RouteSuspense>
+  );
 }
 
 const App = () => (
@@ -120,8 +146,8 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<AuthPage />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/terms" element={<RouteSuspense><Terms /></RouteSuspense>} />
+            <Route path="/privacy" element={<RouteSuspense><Privacy /></RouteSuspense>} />
             <Route path="/onboarding" element={<OnboardingPage />} />
             <Route path="/dashboard" element={<ProtectedPage><Dashboard /></ProtectedPage>} />
             <Route path="/chat" element={<ProtectedPage><Chat /></ProtectedPage>} />
@@ -137,8 +163,8 @@ const App = () => (
             <Route path="/feedback" element={<Navigate to="/settings" replace state={{ tab: "feedback" }} />} />
             <Route path="/budget" element={<ProtectedPage><Budget /></ProtectedPage>} />
             <Route path="/spending-history" element={<ProtectedPage><SpendingHistory /></ProtectedPage>} />
-            <Route path="/install" element={<Install />} />
-            <Route path="*" element={<NotFound />} />
+            <Route path="/install" element={<RouteSuspense><Install /></RouteSuspense>} />
+            <Route path="*" element={<RouteSuspense><NotFound /></RouteSuspense>} />
           </Routes>
         </PublicUserProvider>
       </BrowserRouter>

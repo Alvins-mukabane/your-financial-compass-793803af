@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Download, CheckCircle2, Bell, Shield, Zap, ArrowLeft } from "lucide-react";
+import BrandLockup from "@/components/BrandLockup";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import evaLockup from "@/assets/eva-lockup.png";
-import evaAppIcon from "@/assets/eva-app-icon.png";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -57,12 +56,13 @@ export default function Install() {
 
       <div className="mx-auto flex max-w-md flex-1 flex-col items-center justify-center px-6 pb-12 text-center">
         <motion.div initial={{ scale: 0.84, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="mb-6 flex flex-col items-center gap-5">
-          <img
-            src={evaAppIcon}
-            alt="eva app icon"
-            className="h-24 w-24 rounded-[2rem] object-cover shadow-[0_34px_55px_-32px_rgba(110,73,75,0.42)]"
+          <BrandLockup
+            align="center"
+            loading="eager"
+            size="lg"
+            iconClassName="h-24 w-24 rounded-[2rem]"
+            titleClassName="text-[2.5rem]"
           />
-          <img src={evaLockup} alt="eva" className="h-16 w-auto max-w-full object-contain" />
         </motion.div>
 
         <motion.h1

@@ -16,6 +16,33 @@ process.env.TEMP = buildTmpDir;
 process.env.TMP = buildTmpDir;
 
 export default defineConfig(({ mode }) => ({
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes("node_modules")) {
+            if (id.includes("@tanstack/react-query")) {
+              return "query";
+            }
+
+            if (id.includes("@supabase")) {
+              return "supabase";
+            }
+
+            if (id.includes("recharts")) {
+              return "charts";
+            }
+
+            if (id.includes("framer-motion")) {
+              return "motion";
+            }
+
+            return "vendor";
+          }
+        },
+      },
+    },
+  },
   server: {
     host: "::",
     port: 8080,
@@ -184,22 +211,6 @@ export default defineConfig(({ mode }) => ({
             options: {
               cacheName: "supabase-api",
               expiration: { maxEntries: 50, maxAgeSeconds: 300 },
-            },
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "google-fonts-stylesheets",
-              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
-            },
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "google-fonts-webfonts",
-              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
             },
           },
         ],

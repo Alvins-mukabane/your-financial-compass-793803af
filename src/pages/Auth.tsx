@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import BrandLockup from "@/components/BrandLockup";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -25,8 +26,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { usePublicUser } from "@/context/PublicUserContext";
-import evaAppIcon from "@/assets/eva-app-icon.png";
-import evaLockup from "@/assets/eva-lockup.png";
 import { COUNTRIES } from "@/lib/finance";
 import { cn } from "@/lib/utils";
 import {
@@ -450,12 +449,23 @@ export default function Auth({ forcedMode }: AuthProps) {
             to="/"
             className="inline-flex items-center gap-3 rounded-full border border-border bg-card/80 px-4 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
-            <img src={evaAppIcon} alt="eva app icon" className="h-8 w-8 rounded-2xl" />
+            <img
+              src="/apple-touch-icon.png"
+              alt="eva app icon"
+              width={192}
+              height={192}
+              className="h-8 w-8 rounded-2xl object-cover"
+            />
             Back to eva home
           </Link>
 
           <div className="space-y-4">
-            <img src={evaLockup} alt="eva" className="h-16 w-auto object-contain" />
+            <BrandLockup
+              loading="eager"
+              size="lg"
+              iconClassName="h-14 w-14 md:h-16 md:w-16"
+              titleClassName="text-[2.3rem] md:text-[2.7rem]"
+            />
             <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs font-medium text-muted-foreground">
               <Sparkles className="h-3.5 w-3.5 text-primary" />
               EVA account access

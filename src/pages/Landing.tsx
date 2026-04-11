@@ -1,14 +1,12 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import BrandLockup from "@/components/BrandLockup";
 import { motion } from "framer-motion";
 import { TrendingUp, Brain, Shield, Target, ArrowRight, Sparkles } from "lucide-react";
 import FAQSection from "@/components/FAQSection";
 import { landingFAQs } from "@/data/faqData";
 import SEO, { generateFAQSchema, generateOrganizationSchema } from "@/components/SEO";
-import evaAppIcon from "@/assets/eva-app-icon.png";
 import { usePublicUser } from "@/context/PublicUserContext";
-
-const evaLogoSrc = "/eva-logo.png";
 
 const features = [
   { icon: Brain, title: "AI-Powered Insights", desc: "Understand your money with clear advice on spending patterns, habits, and next best moves." },
@@ -55,7 +53,12 @@ export default function Landing() {
         </div>
 
         <nav className="sticky top-0 z-20 mx-auto flex max-w-[1200px] items-center justify-between border-b border-border/70 bg-background/78 px-6 py-4 backdrop-blur-xl">
-            <img src={evaLogoSrc} alt="eva" className="h-9 w-auto object-contain md:h-10" />
+          <BrandLockup
+            loading="eager"
+            size="sm"
+            subtitleClassName="text-[0.58rem] tracking-[0.18em]"
+            titleClassName="text-[1.2rem]"
+          />
           <div className="flex items-center gap-3">
             <Link to={isAuthenticated ? workspacePath : signInPath}>
               <Button variant="ghost" size="sm">{isAuthenticated ? "Workspace" : "Sign in"}</Button>
@@ -68,7 +71,8 @@ export default function Landing() {
           </div>
         </nav>
 
-        <section className="mx-auto max-w-[1200px] px-6 pb-24 pt-20 text-center">
+        <main>
+          <section className="mx-auto max-w-[1200px] px-6 pb-24 pt-20 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -80,9 +84,15 @@ export default function Landing() {
               Your AI Finance Assistant
             </div>
 
-            <div className="flex justify-center">
-              <img src={evaLogoSrc} alt="eva logo" className="h-16 w-auto object-contain md:h-20" />
-            </div>
+              <BrandLockup
+                align="center"
+                fetchPriority="high"
+                loading="eager"
+                size="lg"
+                iconClassName="h-16 w-16 md:h-20 md:w-20"
+                subtitleClassName="text-[0.72rem] tracking-[0.3em]"
+                titleClassName="text-[2.35rem] md:text-[3rem]"
+              />
 
             <h1 className="mx-auto max-w-4xl text-balance text-4xl font-bold leading-[1.05] text-foreground md:text-6xl">
               Clarity for spending, <span className="text-primary">planning</span>, and calmer cashflow.
@@ -106,12 +116,8 @@ export default function Landing() {
             </div>
 
             <div className="mx-auto mt-10 flex max-w-4xl flex-col items-center gap-6 rounded-[2rem] border border-border/80 bg-card/88 px-6 py-7 shadow-[0_30px_80px_-48px_rgba(110,73,75,0.36)] backdrop-blur">
-              <div className="flex items-center gap-4 rounded-[1.5rem] border border-primary/10 bg-background/80 px-5 py-4 shadow-[0_18px_44px_-36px_rgba(110,73,75,0.28)]">
-                <img src={evaAppIcon} alt="eva app icon" className="h-16 w-16 rounded-[1.35rem] object-cover shadow-[0_22px_36px_-24px_rgba(110,73,75,0.4)]" />
-                <div className="text-left">
-                  <p className="text-sm font-semibold text-foreground">eva</p>
-                  <p className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Your AI Finance Assistant</p>
-                </div>
+              <div className="rounded-[1.5rem] border border-primary/10 bg-background/80 px-5 py-4 shadow-[0_18px_44px_-36px_rgba(110,73,75,0.28)]">
+                <BrandLockup align="center" size="md" />
               </div>
 
               <div className="grid gap-4 text-left md:grid-cols-3">
@@ -133,9 +139,15 @@ export default function Landing() {
               </div>
             </div>
           </motion.div>
-        </section>
+          </section>
 
-        <section className="mx-auto max-w-[1200px] px-6 pb-24">
+          <section className="mx-auto max-w-[1200px] px-6 pb-24">
+            <div className="mb-8 max-w-2xl">
+              <h2 className="text-2xl font-bold text-foreground">What eva helps you do every day</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Stay grounded in the numbers, understand what changed, and move from reactive spending to calmer planning.
+              </p>
+            </div>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
             {features.map((feature, i) => (
               <motion.div
@@ -155,9 +167,9 @@ export default function Landing() {
               </motion.div>
             ))}
           </div>
-        </section>
+          </section>
 
-        <section className="mx-auto max-w-[800px] px-6 pb-24">
+          <section className="mx-auto max-w-[800px] px-6 pb-24">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -168,7 +180,8 @@ export default function Landing() {
             <p className="mb-8 text-center text-sm text-muted-foreground">Everything you need to know about eva</p>
             <FAQSection faqs={landingFAQs} />
           </motion.div>
-        </section>
+          </section>
+        </main>
 
         <footer className="border-t border-border px-6 py-8">
           <div className="mx-auto flex max-w-[1200px] flex-col items-center justify-between gap-4 md:flex-row">

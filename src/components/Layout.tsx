@@ -17,9 +17,9 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import BrandLockup from "@/components/BrandLockup";
 import { cn } from "@/lib/utils";
 import { AnimatePresence, motion } from "framer-motion";
-import evaAppIcon from "@/assets/eva-app-icon.png";
 
 type NavItem = {
   path: string;
@@ -55,6 +55,15 @@ const mobileTabs: NavItem[] = [
 ];
 
 const mobileMoreSections: Array<{ label: string; items: NavItem[] }> = [
+  {
+    label: "Workspace",
+    items: [
+      { path: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+      { path: "/chat", label: "AI Advisor", icon: MessageSquare },
+      { path: "/budget", label: "Budget Limits", icon: DollarSign },
+      { path: "/settings", label: "Settings", icon: Settings },
+    ],
+  },
   {
     label: "Track",
     items: [
@@ -154,11 +163,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <header className="fixed inset-x-0 top-0 z-40 border-b border-border/90 bg-[hsl(var(--background)/0.94)] shadow-[0_16px_32px_-28px_rgba(110,73,75,0.25)] backdrop-blur-xl md:hidden">
         <div className="flex h-16 items-center justify-between px-4">
           <div className="flex items-center gap-3">
-            <img src={evaAppIcon} alt="eva app icon" className="h-10 w-10 rounded-[1.1rem] object-cover shadow-[0_16px_28px_-18px_rgba(110,73,75,0.36)]" />
-            <div>
-              <p className="text-sm font-semibold text-foreground">eva</p>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-muted-foreground">Your AI Finance Assistant</p>
-            </div>
+            <BrandLockup
+              size="sm"
+              subtitleClassName="text-[0.56rem] tracking-[0.2em]"
+              titleClassName="text-[1.05rem]"
+            />
           </div>
           <button
             type="button"
@@ -237,19 +246,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             />
 
             <motion.div
-              initial={{ opacity: 0, y: 24 }}
+              initial={{ opacity: 0, y: 32 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 24 }}
+              exit={{ opacity: 0, y: 32 }}
               transition={{ duration: 0.2 }}
-              className="fixed inset-x-3 bottom-20 z-50 rounded-[1.75rem] border border-border bg-card p-4 shadow-[0_24px_60px_-34px_rgba(110,73,75,0.3)] md:hidden"
+              className="fixed inset-x-3 bottom-[4.5rem] top-[5.1rem] z-50 flex flex-col rounded-[1.9rem] border border-border bg-card/98 p-4 shadow-[0_30px_70px_-40px_rgba(110,73,75,0.34)] md:hidden"
             >
-              <div className="mb-4 flex items-center justify-between gap-3">
+              <div className="mb-4 flex items-center justify-between gap-3 border-b border-border/75 pb-4">
                 <div className="flex items-center gap-3">
-                  <img src={evaAppIcon} alt="eva app icon" className="h-10 w-10 rounded-[1rem] object-cover" />
-                  <div>
-                    <h2 className="text-sm font-semibold text-foreground">More</h2>
-                    <p className="text-xs text-muted-foreground">Open tools, support, and market pages.</p>
-                  </div>
+                  <BrandLockup size="sm" />
                 </div>
                 <button
                   type="button"
@@ -261,10 +266,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 </button>
               </div>
 
-              <div className="max-h-[60vh] space-y-4 overflow-y-auto pb-1">
+              <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pb-4">
                 {mobileMoreSections.map((section) => (
                   <div key={section.label} className="space-y-2">
-                    <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">{section.label}</p>
+                    <p className="px-1 text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-muted-foreground">{section.label}</p>
                     <div className="grid grid-cols-2 gap-2">
                       {section.items.map((item) => {
                         const isActive = activePath === item.path;
@@ -274,7 +279,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                             type="button"
                             onClick={() => navigate(item.path)}
                             className={cn(
-                              "flex items-center gap-3 rounded-2xl border px-3 py-3 text-left text-sm transition-colors",
+                              "flex min-h-[4.75rem] items-center gap-3 rounded-2xl border px-3 py-3 text-left text-sm transition-colors",
                               isActive
                                 ? "border-primary/30 bg-primary/10 text-primary"
                                 : "border-border bg-background text-foreground hover:border-primary/20 hover:bg-secondary",

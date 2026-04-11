@@ -8,8 +8,6 @@ import { cn } from "@/lib/utils";
 import ManualEntryForm from "@/components/financial/ManualEntryForm";
 import CashflowDiagram from "@/components/financial/CashflowDiagram";
 import { useFinancialEntries } from "@/hooks/useFinancialEntries";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
 
 type IncomeItem = { name: string; amount: number; description?: string };
 type ExpenseItem = { name: string; amount: number; category: string };
@@ -49,6 +47,10 @@ export default function FinancialStatement() {
     if (!statementRef.current) return;
     setExporting(true);
     try {
+      const [{ default: html2canvas }, { default: jsPDF }] = await Promise.all([
+        import("html2canvas"),
+        import("jspdf"),
+      ]);
       const canvas = await html2canvas(statementRef.current, {
         scale: 2,
         useCORS: true,
