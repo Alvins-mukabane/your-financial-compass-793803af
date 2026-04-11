@@ -39,6 +39,7 @@ export default defineConfig(({ mode }) => ({
         description: "Your AI finance assistant for spending clarity, planning confidence, and calmer cashflow decisions.",
         theme_color: "#F3A21C",
         background_color: "#FBF4EA",
+        display_override: ["window-controls-overlay", "tabbed", "standalone"],
         display: "standalone",
         orientation: "portrait",
         scope: "/",
@@ -112,7 +113,7 @@ export default defineConfig(({ mode }) => ({
         },
         handle_links: "preferred",
         share_target: {
-          action: "/dashboard",
+          action: "/chat",
           method: "GET",
           enctype: "application/x-www-form-urlencoded",
           params: {
@@ -121,19 +122,61 @@ export default defineConfig(({ mode }) => ({
             url: "url",
           },
         },
+        file_handlers: [
+          {
+            action: "/chat?source=file-launch",
+            accept: {
+              "text/csv": [".csv"],
+              "text/plain": [".txt", ".md"],
+              "application/json": [".json"],
+            },
+          },
+        ],
         edge_side_panel: {
           preferred_width: 400,
         },
         protocol_handlers: [
           {
             protocol: "web+eva",
-            url: "/dashboard?action=%s",
+            url: "/chat?source=protocol&payload=%s",
+          },
+        ],
+        widgets: [
+          {
+            name: "eva daily snapshot",
+            short_name: "Daily snapshot",
+            description: "A quick finance snapshot with your next best action.",
+            tag: "eva-daily-snapshot",
+            template: "eva-daily-snapshot",
+            ms_ac_template: "widgets/eva-daily-snapshot.template.json",
+            data: "widgets/eva-daily-snapshot.data.json",
+            type: "application/json",
+            auth: true,
+            update: 3600,
+            multiple: false,
+            icons: [
+              {
+                src: "pwa-icon-192.png",
+                sizes: "192x192",
+                type: "image/png",
+              },
+            ],
+            screenshots: [
+              {
+                src: "widgets/eva-widget-preview.svg",
+                sizes: "600x400",
+                type: "image/svg+xml",
+                label: "eva daily snapshot widget preview",
+                platform: "Windows",
+              },
+            ],
           },
         ],
       } as any,
       workbox: {
         navigateFallbackDenylist: [/^\/~oauth/],
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,woff,woff2}"],
+        globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,json,woff,woff2,webmanifest}"],
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/.*\.supabase\.co\/.*/i,
@@ -148,6 +191,14 @@ export default defineConfig(({ mode }) => ({
             handler: "CacheFirst",
             options: {
               cacheName: "google-fonts-stylesheets",
+              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
+            },
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "google-fonts-webfonts",
               expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 365 },
             },
           },

@@ -4,6 +4,7 @@ import { Send, Sparkles, User, Loader2, TrendingUp, Wallet, BarChart3, Calendar 
 import ReactMarkdown from "react-markdown";
 import { useLocation } from "react-router-dom";
 import { streamChat, type Msg, type ParsedSpending } from "@/lib/streamChat";
+import { clearChatStarter, getShareOrProtocolStarter, readChatStarter } from "@/lib/pwa";
 import { usePublicUser } from "@/context/PublicUserContext";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -15,8 +16,6 @@ const quickActions = [
   { label: "Advise me", prompt: "Run a deep analysis of my spending and give me proactive advice.", icon: Sparkles },
   { label: "My score", prompt: "What's my financial score and how can I improve it?", icon: TrendingUp },
 ];
-
-const CHAT_STARTER_STORAGE_KEY = "eva-chat-starter";
 
 interface SpendingBubble {
   items: { category: string; amount: number; description: string }[];
@@ -106,20 +105,19 @@ export default function Chat() {
     let starterPrompt = routeState?.starterPrompt;
     let autoStart = routeState?.autoStart;
 
-    if ((!starterPrompt || autoStart === undefined) && typeof window !== "undefined") {
-      const storedStarter = window.sessionStorage.getItem(CHAT_STARTER_STORAGE_KEY);
+    if (!starterPrompt || autoStart === undefined) {
+      const launchStarter = getShareOrProtocolStarter(location.search);
+      if (launchStarter) {
+        starterPrompt = launchStarter.starterPrompt;
+        autoStart = launchStarter.autoStart ?? autoStart;
+      }
+    }
 
+    if (!starterPrompt || autoStart === undefined) {
+      const storedStarter = readChatStarter();
       if (storedStarter) {
-        try {
-          const parsed = JSON.parse(storedStarter) as {
-            starterPrompt?: string;
-            autoStart?: boolean;
-          };
-          starterPrompt = parsed.starterPrompt ?? starterPrompt;
-          autoStart = parsed.autoStart ?? autoStart;
-        } catch {
-          window.sessionStorage.removeItem(CHAT_STARTER_STORAGE_KEY);
-        }
+        starterPrompt = storedStarter.starterPrompt ?? starterPrompt;
+        autoStart = storedStarter.autoStart ?? autoStart;
       }
     }
 
@@ -135,9 +133,7 @@ export default function Chat() {
       setInput(starterPrompt);
     }
 
-    if (typeof window !== "undefined") {
-      window.sessionStorage.removeItem(CHAT_STARTER_STORAGE_KEY);
-    }
+    clearChatStarter();
 
     if (typeof window !== "undefined" && window.history?.replaceState) {
       window.history.replaceState(
@@ -149,7 +145,7 @@ export default function Chat() {
         window.location.href,
       );
     }
-  }, [location.state, send]);
+  }, [location.search, location.state, send]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {

@@ -127,7 +127,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <aside className="fixed hidden h-screen w-[236px] flex-col gap-4 border-r border-border/90 bg-[hsl(var(--sidebar-background)/0.94)] p-4 pt-5 shadow-[18px_0_45px_-38px_rgba(110,73,75,0.28)] backdrop-blur-xl md:flex">
+      <aside className="window-controls-safe-sidebar fixed hidden w-[236px] flex-col gap-4 border-r border-border/90 bg-[hsl(var(--sidebar-background)/0.94)] p-4 pt-5 shadow-[18px_0_45px_-38px_rgba(110,73,75,0.28)] backdrop-blur-xl md:flex">
         <div className="rounded-[1.5rem] border border-border/90 bg-card/95 p-4 shadow-[0_18px_40px_-30px_rgba(110,73,75,0.24)]">
           <img src={evaLockup} alt="eva" className="h-14 w-auto object-contain" />
           <p className="mt-3 text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
@@ -205,7 +205,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="flex-1 pb-20 pt-16 md:ml-[236px] md:pt-0 md:pb-0">{children}</main>
+      <main className="window-controls-safe-main flex-1 pb-20 pt-16 md:ml-[236px] md:pt-0 md:pb-0">{children}</main>
 
       <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-border bg-card/95 shadow-[0_-16px_32px_-28px_rgba(110,73,75,0.22)] backdrop-blur-xl md:hidden">
         <div className="flex h-16 items-center justify-around px-2">

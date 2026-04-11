@@ -6,6 +6,11 @@
 
 @layer base {
   :root {
+    --titlebar-area-x: 0px;
+    --titlebar-area-y: 0px;
+    --titlebar-area-width: 0px;
+    --titlebar-area-height: 0px;
+
     --background: 35 85% 97%;
     --foreground: 24 28% 18%;
 
@@ -74,6 +79,10 @@
     background-attachment: fixed;
   }
 
+  html[data-window-controls-overlay="visible"] body {
+    min-height: calc(100vh - var(--titlebar-area-height));
+  }
+
   button,
   input,
   textarea,
@@ -94,6 +103,15 @@
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  html[data-window-controls-overlay="visible"] .window-controls-safe-sidebar {
+    top: var(--titlebar-area-height, 0px);
+    height: calc(100vh - var(--titlebar-area-height, 0px));
+  }
+
+  html[data-window-controls-overlay="visible"] .window-controls-safe-main {
+    padding-top: var(--titlebar-area-height, 0px) !important;
   }
 
   .text-xs {

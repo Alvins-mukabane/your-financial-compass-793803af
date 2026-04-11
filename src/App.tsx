@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import AppErrorDialog from "@/components/AppErrorDialog";
 import Layout from "@/components/Layout";
+import PwaRuntime from "@/components/PwaRuntime";
 import { PublicUserProvider, usePublicUser } from "@/context/PublicUserContext";
 import Landing from "@/pages/Landing";
 import Dashboard from "@/pages/Dashboard";
@@ -115,6 +116,7 @@ const App = () => (
       <AppErrorDialog />
       <BrowserRouter>
         <PublicUserProvider>
+          <PwaRuntime />
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/auth" element={<AuthPage />} />
