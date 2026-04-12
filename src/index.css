@@ -4,6 +4,7 @@
 
 @layer base {
   :root {
+    --app-font-size: 17px;
     --titlebar-area-x: 0px;
     --titlebar-area-y: 0px;
     --titlebar-area-width: 0px;
@@ -54,11 +55,56 @@
     --chart-4: 23 46% 42%;
     --chart-5: 45 86% 54%;
   }
+
+  .dark {
+    --background: 22 29% 9%;
+    --foreground: 35 40% 95%;
+
+    --card: 24 26% 12%;
+    --card-foreground: 35 40% 95%;
+
+    --popover: 24 26% 12%;
+    --popover-foreground: 35 40% 95%;
+
+    --primary: 32 94% 58%;
+    --primary-foreground: 22 29% 9%;
+
+    --secondary: 23 18% 18%;
+    --secondary-foreground: 35 38% 94%;
+
+    --muted: 22 18% 17%;
+    --muted-foreground: 31 18% 74%;
+
+    --accent: 24 26% 18%;
+    --accent-foreground: 35 40% 95%;
+
+    --destructive: 8 74% 54%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 24 15% 24%;
+    --input: 24 15% 24%;
+    --ring: 32 94% 58%;
+
+    --sidebar-background: 22 28% 11%;
+    --sidebar-foreground: 35 38% 94%;
+    --sidebar-primary: 32 94% 58%;
+    --sidebar-primary-foreground: 22 29% 9%;
+    --sidebar-accent: 24 24% 17%;
+    --sidebar-accent-foreground: 35 40% 95%;
+    --sidebar-border: 23 15% 23%;
+    --sidebar-ring: 32 94% 58%;
+
+    --chart-1: 32 94% 58%;
+    --chart-2: 153 55% 48%;
+    --chart-3: 10 82% 62%;
+    --chart-4: 199 82% 56%;
+    --chart-5: 48 92% 60%;
+  }
 }
 
 @layer base {
   html {
-    font-size: 17px;
+    font-size: var(--app-font-size, 17px);
   }
 
   * {
@@ -95,6 +141,42 @@
   ::selection {
     background: hsl(37 90% 53% / 0.18);
     color: hsl(var(--foreground));
+  }
+
+  .dark body {
+    background-image:
+      radial-gradient(circle at top center, hsl(32 94% 58% / 0.18), transparent 30%),
+      radial-gradient(circle at 82% 16%, hsl(153 55% 48% / 0.08), transparent 18%),
+      linear-gradient(180deg, hsl(23 25% 11%), hsl(22 24% 8%));
+  }
+
+  html[data-font-scale="16"] {
+    --app-font-size: 16px;
+  }
+
+  html[data-font-scale="17"] {
+    --app-font-size: 17px;
+  }
+
+  html[data-font-scale="18"] {
+    --app-font-size: 18px;
+  }
+
+  html[data-font-scale="20"] {
+    --app-font-size: 20px;
+  }
+
+  html[data-motion="reduced"] {
+    scroll-behavior: auto;
+  }
+
+  html[data-motion="reduced"] *,
+  html[data-motion="reduced"] *::before,
+  html[data-motion="reduced"] *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
