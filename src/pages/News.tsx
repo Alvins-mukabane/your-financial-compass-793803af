@@ -37,6 +37,8 @@ export default function News() {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState<string>("All");
+  const [fetchAttempted, setFetchAttempted] = useState(false);
+  const [limitedMessage, setLimitedMessage] = useState("");
 
   const fetchNews = async () => {
     if (!hasSupabaseConfig) {
@@ -44,11 +46,20 @@ export default function News() {
       return;
     }
 
+    setFetchAttempted(true);
     setLoading(true);
     try {
       const data = await invokeEdgeFunction<{ articles?: NewsArticle[] }>("fetch-finance-news");
       setArticles(data.articles || []);
+      setLimitedMessage(
+        (data.articles || []).length === 0
+          ? "Live finance headlines are sparse right now, so eva is waiting for stronger coverage instead of showing filler."
+          : "",
+      );
     } catch (e: any) {
+      setLimitedMessage(
+        "Finance news is temporarily unavailable. Try again shortly for a fresh market snapshot.",
+      );
       toast.error(e.message || "Failed to fetch news");
     } finally {
       setLoading(false);
@@ -88,7 +99,10 @@ export default function News() {
             <Newspaper className="w-8 h-8 text-primary" />
           </div>
           <p className="text-sm text-muted-foreground max-w-sm">
-            Get the latest trending finance news from Yahoo Finance, Reuters, Forbes, and more.
+            {fetchAttempted
+              ? limitedMessage ||
+                "eva could not ground a strong set of finance headlines just now."
+              : "Get the latest trending finance news from Yahoo Finance, Reuters, Forbes, and more."}
           </p>
         </div>
       )}

@@ -216,19 +216,10 @@ export default function Goals() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {bootstrap.goals.map((goal, index) => {
-            const progress = goal.target_amount
-              ? Math.round((goal.current_amount / goal.target_amount) * 100)
-              : 0;
-            const remaining = goal.target_amount - goal.current_amount;
-            const monthsLeft = Math.max(
-              1,
-              Math.ceil(
-                (new Date(goal.deadline).getTime() - Date.now()) /
-                  (1000 * 60 * 60 * 24 * 30),
-              ),
-            );
-            const monthlyContribution = Math.max(0, Math.round(remaining / monthsLeft));
+          {(bootstrap.goal_statuses ?? []).map((goal, index) => {
+            const progress = goal.progress_percent;
+            const remaining = goal.remaining_amount;
+            const monthlyContribution = goal.monthly_contribution_needed;
 
             return (
               <motion.div
@@ -256,7 +247,12 @@ export default function Goals() {
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
-                      onClick={() => openEdit(goal)}
+                      onClick={() => {
+                        const sourceGoal = bootstrap.goals.find((item) => item.id === goal.id);
+                        if (sourceGoal) {
+                          openEdit(sourceGoal);
+                        }
+                      }}
                       className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                       aria-label="Edit goal"
                     >
@@ -283,9 +279,24 @@ export default function Goals() {
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium text-primary">{progress}% complete</span>
                   <span className="text-muted-foreground">
-                    {remaining > 0
+                    {goal.status !== "achieved"
                       ? `${formatCurrency(monthlyContribution)}/mo needed`
                       : "Goal funded"}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span>
+                    {goal.status === "achieved"
+                      ? "Achieved"
+                      : goal.status === "on_track"
+                        ? "On track"
+                        : "Needs attention"}
+                  </span>
+                  <span>
+                    {goal.days_remaining > 0
+                      ? `${goal.days_remaining} day${goal.days_remaining === 1 ? "" : "s"} left`
+                      : "Deadline reached"}
                   </span>
                 </div>
               </motion.div>

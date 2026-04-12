@@ -1,7 +1,15 @@
 import { invokeEdgeFunction } from "@/lib/edgeFunctions";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Sparkles, Loader2, RefreshCw, TrendingUp, TrendingDown, AlertTriangle, Lightbulb } from "lucide-react";
+import {
+  Sparkles,
+  Loader2,
+  RefreshCw,
+  TrendingUp,
+  TrendingDown,
+  AlertTriangle,
+  Lightbulb,
+} from "lucide-react";
 import { hasSupabaseConfig, SUPABASE_SETUP_MESSAGE } from "@/integrations/supabase/client";
 import { usePublicUser } from "@/context/PublicUserContext";
 import { toast } from "sonner";
@@ -25,7 +33,11 @@ interface InsightsData {
 }
 
 const formatCurrency = (n: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(n);
+  new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 0,
+  }).format(n);
 
 const insightIcons: Record<string, typeof TrendingUp> = {
   positive: TrendingUp,
@@ -37,7 +49,8 @@ const insightIcons: Record<string, typeof TrendingUp> = {
 const insightColors: Record<string, string> = {
   positive: "text-primary bg-primary/10 border-primary/20",
   negative: "text-destructive bg-destructive/10 border-destructive/20",
-  warning: "text-[hsl(var(--chart-4))] bg-[hsl(var(--chart-5)/0.16)] border-[hsl(var(--chart-5)/0.26)]",
+  warning:
+    "text-[hsl(var(--chart-4))] bg-[hsl(var(--chart-5)/0.16)] border-[hsl(var(--chart-5)/0.26)]",
   tip: "text-[hsl(var(--chart-2))] bg-[hsl(var(--chart-2)/0.10)] border-[hsl(var(--chart-2)/0.18)]",
 };
 
@@ -45,7 +58,7 @@ export default function Insights() {
   const { bootstrap } = usePublicUser();
   const [data, setData] = useState<InsightsData | null>(null);
   const [loading, setLoading] = useState(false);
-  const [frequency, setFrequency] = useState<Frequency>("monthly");
+  const [frequency, setFrequency] = useState<Frequency>("weekly");
 
   const generate = async () => {
     if (!bootstrap.empty_flags.has_spending_history) {
@@ -72,55 +85,81 @@ export default function Insights() {
   };
 
   return (
-    <div className="p-4 md:p-8 max-w-4xl mx-auto space-y-6 pb-24 md:pb-8">
+    <div className="mx-auto max-w-5xl space-y-6 p-4 pb-24 md:p-8 md:pb-8">
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl font-bold tracking-tight">Spending Insights</h1>
-        <p className="text-sm text-muted-foreground mt-1">AI-powered analysis of your spending patterns</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Start with grounded daily and weekly summaries, then generate a deeper AI review when you
+          want more detail.
+        </p>
       </motion.div>
 
-      {/* Frequency selector */}
-      <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
-        className="flex items-center gap-2"
+      <div className="grid gap-3 md:grid-cols-2">
+        {(bootstrap.summaries ?? []).map((summary) => (
+          <motion.div
+            key={summary.period}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="rounded-xl border border-border bg-card p-5"
+          >
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              {summary.period === "daily" ? "Daily summary" : "Weekly summary"}
+            </p>
+            <h2 className="mt-3 text-base font-semibold text-foreground">{summary.headline}</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{summary.body}</p>
+            <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+              <span>{formatCurrency(summary.total_spent)} tracked</span>
+              <span>{summary.event_count} log(s)</span>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.05 }}
+        className="flex flex-wrap items-center gap-2 rounded-xl border border-border bg-card p-4"
       >
-        {(["daily", "weekly", "monthly"] as Frequency[]).map((f) => (
+        {(["daily", "weekly", "monthly"] as Frequency[]).map((item) => (
           <button
-            key={f}
-            onClick={() => setFrequency(f)}
+            key={item}
+            onClick={() => setFrequency(item)}
             className={cn(
-              "px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize",
-              frequency === f
+              "rounded-lg px-4 py-2 text-sm font-medium capitalize transition-colors",
+              frequency === item
                 ? "bg-primary text-primary-foreground"
-                : "bg-secondary text-muted-foreground hover:text-foreground"
+                : "bg-secondary text-muted-foreground hover:text-foreground",
             )}
           >
-            {f}
+            {item}
           </button>
         ))}
         <button
           onClick={generate}
           disabled={loading}
-          className="ml-auto flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+          className="ml-auto inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
         >
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-          {data ? "Refresh" : "Generate Insights"}
+          {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : data ? <RefreshCw className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+          {data ? "Refresh deep insight" : "Generate deep insight"}
         </button>
       </motion.div>
 
       {loading && (
-        <div className="flex flex-col items-center justify-center py-20 gap-4">
-          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+        <div className="flex flex-col items-center justify-center gap-4 py-20">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-sm text-muted-foreground">Analyzing your {frequency} spending...</p>
         </div>
       )}
 
       {!loading && !data && (
-        <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
-          <div className="w-16 h-16 rounded-2xl bg-primary/12 flex items-center justify-center">
-            <Sparkles className="w-8 h-8 text-primary" />
+        <div className="flex flex-col items-center justify-center gap-4 py-14 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/12">
+            <Sparkles className="h-8 w-8 text-primary" />
           </div>
-          <p className="text-sm text-muted-foreground max-w-sm">
+          <p className="max-w-md text-sm text-muted-foreground">
             {bootstrap.empty_flags.has_spending_history
-              ? "Select your preferred frequency and generate AI-powered insights from your real spending history."
+              ? "Your daily and weekly summaries above are already grounded in real logs. Generate a deeper AI view whenever you want category-level analysis and savings opportunities."
               : "Log a few real expenses first. Once you have spending history, eva will generate grounded insights instead of placeholders."}
           </p>
         </div>
@@ -128,22 +167,28 @@ export default function Insights() {
 
       {!loading && data && (
         <div className="space-y-6">
-          {/* Top spending categories */}
-          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
             className="rounded-xl border border-border bg-card p-5"
           >
-            <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4">Top Spending Categories</h2>
+            <h2 className="mb-4 text-sm font-bold uppercase tracking-wider text-muted-foreground">
+              Top spending categories
+            </h2>
             <div className="space-y-3">
-              {data.top_spending_categories.map((cat, i) => (
-                <div key={i} className="space-y-1">
+              {data.top_spending_categories.map((category, index) => (
+                <div key={`${category.category}-${index}`} className="space-y-1">
                   <div className="flex justify-between text-sm">
-                    <span className="text-foreground font-medium">{cat.category}</span>
-                    <span className="text-muted-foreground tabular-nums">{formatCurrency(cat.amount)} ({cat.percentage}%)</span>
+                    <span className="font-medium text-foreground">{category.category}</span>
+                    <span className="tabular-nums text-muted-foreground">
+                      {formatCurrency(category.amount)} ({category.percentage}%)
+                    </span>
                   </div>
-                  <div className="h-2 rounded-full bg-secondary overflow-hidden">
+                  <div className="h-2 overflow-hidden rounded-full bg-secondary">
                     <motion.div
-                      initial={{ width: 0 }} animate={{ width: `${cat.percentage}%` }}
-                      transition={{ duration: 0.6, delay: i * 0.1 }}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${category.percentage}%` }}
+                      transition={{ duration: 0.6, delay: index * 0.08 }}
                       className="h-full rounded-full bg-primary"
                     />
                   </div>
@@ -152,42 +197,52 @@ export default function Insights() {
             </div>
           </motion.div>
 
-          {/* Savings opportunity */}
           {data.savings_opportunity > 0 && (
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-              className="rounded-xl border border-primary/20 bg-primary/5 p-5 flex items-center gap-4"
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="flex items-center gap-4 rounded-xl border border-primary/20 bg-primary/5 p-5"
             >
-              <div className="w-12 h-12 rounded-xl bg-primary/12 flex items-center justify-center shrink-0">
-                <TrendingUp className="w-6 h-6 text-primary" />
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/12">
+                <TrendingUp className="h-6 w-6 text-primary" />
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Potential Savings</p>
-                <p className="text-2xl font-bold text-primary tabular-nums">{formatCurrency(data.savings_opportunity)}</p>
-                <p className="text-xs text-muted-foreground">per {frequency === "daily" ? "day" : frequency === "weekly" ? "week" : "month"}</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Potential savings
+                </p>
+                <p className="text-2xl font-bold text-primary tabular-nums">
+                  {formatCurrency(data.savings_opportunity)}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  per {frequency === "daily" ? "day" : frequency === "weekly" ? "week" : "month"}
+                </p>
               </div>
             </motion.div>
           )}
 
-          {/* Insights grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {data.insights.map((insight, i) => {
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {data.insights.map((insight, index) => {
               const Icon = insightIcons[insight.type] || Lightbulb;
               const colorClasses = insightColors[insight.type] || insightColors.tip;
               return (
                 <motion.div
-                  key={i}
-                  initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 + i * 0.05 }}
+                  key={`${insight.title}-${index}`}
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 + index * 0.05 }}
                   className={cn("rounded-xl border p-4", colorClasses)}
                 >
                   <div className="flex items-start gap-3">
-                    <Icon className="w-5 h-5 mt-0.5 shrink-0" />
+                    <Icon className="mt-0.5 h-5 w-5 shrink-0" />
                     <div>
                       <p className="text-sm font-semibold">{insight.title}</p>
-                      <p className="text-xs mt-1 opacity-80">{insight.description}</p>
-                      {insight.amount !== undefined && (
-                        <p className="text-sm font-bold mt-2 tabular-nums">{formatCurrency(insight.amount)}</p>
-                      )}
+                      <p className="mt-1 text-xs opacity-80">{insight.description}</p>
+                      {insight.amount !== undefined ? (
+                        <p className="mt-2 text-sm font-bold tabular-nums">
+                          {formatCurrency(insight.amount)}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 </motion.div>
@@ -195,18 +250,22 @@ export default function Insights() {
             })}
           </div>
 
-          {/* Summary */}
-          {data.summary && (
-            <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+          {data.summary ? (
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
               className="rounded-xl border border-border bg-card p-5"
             >
-              <div className="flex items-center gap-2 mb-3">
-                <Sparkles className="w-4 h-4 text-primary" />
-                <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">AI Summary</h2>
+              <div className="mb-3 flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground">
+                  AI summary
+                </h2>
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed">{data.summary}</p>
+              <p className="text-sm leading-relaxed text-muted-foreground">{data.summary}</p>
             </motion.div>
-          )}
+          ) : null}
         </div>
       )}
     </div>

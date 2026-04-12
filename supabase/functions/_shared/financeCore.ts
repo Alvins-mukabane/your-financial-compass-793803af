@@ -132,6 +132,54 @@ type DashboardSummary = {
   latest_spending_date: string | null;
 };
 
+type AdviceResult = {
+  id: string;
+  type:
+    | "spending_acknowledgement"
+    | "grounded_advice"
+    | "budget_warning"
+    | "goal_progress_nudge";
+  tone: "info" | "success" | "warning";
+  title: string;
+  body: string;
+  cta_label: string | null;
+  cta_href: string | null;
+};
+
+type SummaryResult = {
+  period: "daily" | "weekly";
+  status: "ready" | "needs_more_data";
+  headline: string;
+  body: string;
+  total_spent: number;
+  event_count: number;
+  top_category: string | null;
+  generated_at: string;
+};
+
+type BudgetStatus = {
+  category: string;
+  monthly_limit: number;
+  spent_this_month: number;
+  remaining_amount: number;
+  percent_used: number;
+  status: "healthy" | "watch" | "over";
+};
+
+type GoalStatus = {
+  id: string;
+  name: string;
+  icon: string;
+  target_amount: number;
+  current_amount: number;
+  remaining_amount: number;
+  progress_percent: number;
+  deadline: string;
+  days_remaining: number;
+  monthly_contribution_needed: number;
+  status: "on_track" | "needs_attention" | "achieved";
+};
+
 const UUID_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
@@ -295,6 +343,323 @@ function buildDashboardSummary(
   };
 }
 
+function getCurrentMonthKey() {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function buildCurrentMonthCategoryTotals(spendingEvents: FinanceSpendingEvent[]) {
+  const currentMonth = getCurrentMonthKey();
+  const totals: Record<string, number> = {};
+
+  for (const event of spendingEvents) {
+    if (!event.date.startsWith(currentMonth)) continue;
+
+    for (const item of Array.isArray(event.items) ? event.items : []) {
+      const category = String(item.category ?? "Other");
+      totals[category] = (totals[category] || 0) + parseNumber(item.amount);
+    }
+  }
+
+  return totals;
+}
+
+function getStatusPriority(status: BudgetStatus["status"]) {
+  if (status === "over") return 0;
+  if (status === "watch") return 1;
+  return 2;
+}
+
+function buildBudgetStatuses(
+  budgetLimits: FinanceBudgetLimit[],
+  spendingEvents: FinanceSpendingEvent[],
+) {
+  const spendingByCategory = buildCurrentMonthCategoryTotals(spendingEvents);
+
+  return budgetLimits
+    .map<BudgetStatus>((budget) => {
+      const spentThisMonth = parseNumber(spendingByCategory[budget.category]);
+      const monthlyLimit = parseNumber(budget.monthly_limit);
+      const percentUsed =
+        monthlyLimit > 0
+          ? Math.round((spentThisMonth / monthlyLimit) * 100)
+          : 0;
+
+      return {
+        category: budget.category,
+        monthly_limit: monthlyLimit,
+        spent_this_month: spentThisMonth,
+        remaining_amount: Math.max(monthlyLimit - spentThisMonth, 0),
+        percent_used: clamp(percentUsed, 0, 999),
+        status:
+          spentThisMonth > monthlyLimit
+            ? "over"
+            : percentUsed >= 80
+              ? "watch"
+              : "healthy",
+      };
+    })
+    .sort((left, right) => {
+      const priorityDiff =
+        getStatusPriority(left.status) - getStatusPriority(right.status);
+      if (priorityDiff !== 0) return priorityDiff;
+      return right.percent_used - left.percent_used;
+    });
+}
+
+function buildGoalStatuses(
+  goals: FinanceGoal[],
+  dashboardSummary: DashboardSummary,
+) {
+  const dayMs = 1000 * 60 * 60 * 24;
+
+  return goals
+    .map<GoalStatus>((goal) => {
+      const targetAmount = parseNumber(goal.target_amount);
+      const currentAmount = parseNumber(goal.current_amount);
+      const remainingAmount = Math.max(targetAmount - currentAmount, 0);
+      const progressPercent =
+        targetAmount > 0
+          ? clamp(Math.round((currentAmount / targetAmount) * 100), 0, 100)
+          : 0;
+      const deadlineMs = new Date(goal.deadline).getTime();
+      const rawDaysRemaining = Number.isFinite(deadlineMs)
+        ? Math.ceil((deadlineMs - Date.now()) / dayMs)
+        : 0;
+      const daysRemaining = Math.max(rawDaysRemaining, 0);
+      const monthsRemaining = Math.max(Math.ceil(daysRemaining / 30), 1);
+      const monthlyContributionNeeded =
+        remainingAmount > 0 ? Math.ceil(remainingAmount / monthsRemaining) : 0;
+      const status: GoalStatus["status"] =
+        remainingAmount <= 0
+          ? "achieved"
+          : dashboardSummary.monthly_cashflow >= monthlyContributionNeeded &&
+              daysRemaining > 0
+            ? "on_track"
+            : "needs_attention";
+
+      return {
+        id: goal.id,
+        name: goal.name,
+        icon: goal.icon,
+        target_amount: targetAmount,
+        current_amount: currentAmount,
+        remaining_amount: remainingAmount,
+        progress_percent: progressPercent,
+        deadline: goal.deadline,
+        days_remaining: daysRemaining,
+        monthly_contribution_needed: monthlyContributionNeeded,
+        status,
+      };
+    })
+    .sort((left, right) => {
+      if (left.status === "needs_attention" && right.status !== "needs_attention") return -1;
+      if (left.status !== "needs_attention" && right.status === "needs_attention") return 1;
+      if (left.status === "achieved" && right.status !== "achieved") return 1;
+      if (left.status !== "achieved" && right.status === "achieved") return -1;
+      return left.days_remaining - right.days_remaining;
+    });
+}
+
+function summarizeWindow(
+  period: SummaryResult["period"],
+  spendingEvents: FinanceSpendingEvent[],
+  budgetStatuses: BudgetStatus[],
+  goalStatuses: GoalStatus[],
+) {
+  const since = new Date();
+  since.setHours(0, 0, 0, 0);
+  since.setDate(since.getDate() - (period === "daily" ? 0 : 6));
+
+  const relevantEvents = spendingEvents.filter(
+    (event) => new Date(event.date) >= since,
+  );
+  const categoryTotals: Record<string, number> = {};
+
+  for (const event of relevantEvents) {
+    for (const item of Array.isArray(event.items) ? event.items : []) {
+      const category = String(item.category ?? "Other");
+      categoryTotals[category] = (categoryTotals[category] || 0) + parseNumber(item.amount);
+    }
+  }
+
+  const topCategoryEntry = Object.entries(categoryTotals).sort(
+    (left, right) => right[1] - left[1],
+  )[0];
+  const topCategory = topCategoryEntry?.[0] ?? null;
+  const topCategoryAmount = parseNumber(topCategoryEntry?.[1]);
+  const totalSpent = relevantEvents.reduce(
+    (sum, event) => sum + parseNumber(event.total),
+    0,
+  );
+  const budgetAlert = budgetStatuses.find(
+    (status) => status.status === "over" || status.status === "watch",
+  );
+  const goalAttention = goalStatuses.find((goal) => goal.status === "needs_attention");
+
+  if (relevantEvents.length === 0) {
+    return {
+      period,
+      status: "needs_more_data",
+      headline:
+        period === "daily"
+          ? "No spending logged today yet"
+          : "Your weekly summary will sharpen as you keep logging",
+      body:
+        period === "daily"
+          ? "Log your first expense today and eva will turn it into a grounded daily pulse."
+          : "You need a few more real logs this week before eva can confidently summarize your trend.",
+      total_spent: 0,
+      event_count: 0,
+      top_category: null,
+      generated_at: new Date().toISOString(),
+    } satisfies SummaryResult;
+  }
+
+  const cadence = period === "daily" ? "today" : "this week";
+  const nextPrompt = budgetAlert
+    ? `${budgetAlert.category} is ${budgetAlert.status === "over" ? "already over" : "close to"} budget, so that is the next place to tighten.`
+    : goalAttention
+      ? `${goalAttention.name} needs about $${goalAttention.monthly_contribution_needed} per month to stay on track.`
+      : "Keep logging in real time so eva can protect your trend before spending drifts.";
+
+  return {
+    period,
+    status: "ready",
+    headline:
+      period === "daily"
+        ? `You logged $${totalSpent.toFixed(2)} ${cadence}.`
+        : `You logged $${totalSpent.toFixed(2)} ${cadence} across ${relevantEvents.length} record${relevantEvents.length === 1 ? "" : "s"}.`,
+    body: topCategory
+      ? `${topCategory} led your spending at $${topCategoryAmount.toFixed(2)} ${cadence}. ${nextPrompt}`
+      : nextPrompt,
+    total_spent: totalSpent,
+    event_count: relevantEvents.length,
+    top_category: topCategory,
+    generated_at: new Date().toISOString(),
+  } satisfies SummaryResult;
+}
+
+function buildSummaries(
+  spendingEvents: FinanceSpendingEvent[],
+  budgetStatuses: BudgetStatus[],
+  goalStatuses: GoalStatus[],
+) {
+  return [
+    summarizeWindow("daily", spendingEvents, budgetStatuses, goalStatuses),
+    summarizeWindow("weekly", spendingEvents, budgetStatuses, goalStatuses),
+  ];
+}
+
+function buildAdvice(
+  dashboardSummary: DashboardSummary,
+  spendingEvents: FinanceSpendingEvent[],
+  budgetStatuses: BudgetStatus[],
+  goalStatuses: GoalStatus[],
+  subscriptions: FinanceSubscription[],
+) {
+  const advice: AdviceResult[] = [];
+  const latestEvent = spendingEvents[0];
+
+  if (latestEvent) {
+    const itemCount = Array.isArray(latestEvent.items) ? latestEvent.items.length : 0;
+    advice.push({
+      id: "latest-spending",
+      type: "spending_acknowledgement",
+      tone: "info",
+      title: "Your latest spending is already in the workspace",
+      body: `eva logged ${itemCount} item${itemCount === 1 ? "" : "s"} worth $${parseNumber(latestEvent.total).toFixed(2)} on ${latestEvent.date}. That same record now powers your dashboard, summaries, and history.`,
+      cta_label: "Review spending history",
+      cta_href: "/spending-history",
+    });
+  } else {
+    advice.push({
+      id: "log-first-expense",
+      type: "grounded_advice",
+      tone: "info",
+      title: "Start the loop by logging a real expense",
+      body: "The fastest way to unlock grounded advice is to log one real purchase today. Once you do, eva will reflect it across history, summaries, and your dashboard.",
+      cta_label: "Log an expense",
+      cta_href: "/chat",
+    });
+  }
+
+  const budgetAlert = budgetStatuses.find(
+    (status) => status.status === "over" || status.status === "watch",
+  );
+  if (budgetAlert) {
+    advice.push({
+      id: "budget-alert",
+      type: "budget_warning",
+      tone: "warning",
+      title:
+        budgetAlert.status === "over"
+          ? `${budgetAlert.category} is already over budget`
+          : `${budgetAlert.category} is nearing its limit`,
+      body:
+        budgetAlert.status === "over"
+          ? `You have spent $${budgetAlert.spent_this_month.toFixed(2)} against a $${budgetAlert.monthly_limit.toFixed(2)} limit this month. Tightening this category now will protect the rest of the month.`
+          : `You have used ${budgetAlert.percent_used}% of your ${budgetAlert.category} budget this month. One or two more discretionary purchases could push it over.`,
+      cta_label: "Review budgets",
+      cta_href: "/budget",
+    });
+  } else if (dashboardSummary.monthly_cashflow < 0) {
+    advice.push({
+      id: "cashflow-reset",
+      type: "grounded_advice",
+      tone: "warning",
+      title: "Your monthly plan needs breathing room",
+      body: `Based on your current profile and recurring costs, you are about $${Math.abs(dashboardSummary.monthly_cashflow).toFixed(2)} below break-even each month. Use budgets and subscriptions to create a buffer before adding new goals.`,
+      cta_label: "Review subscriptions",
+      cta_href: "/subscriptions",
+    });
+  } else {
+    advice.push({
+      id: "cashflow-room",
+      type: "grounded_advice",
+      tone: "success",
+      title: "You still have room to direct intentionally",
+      body: `Your current monthly plan leaves about $${dashboardSummary.monthly_cashflow.toFixed(2)} after fixed costs and subscriptions. Direct that margin toward a goal before it disappears into reactive spending.`,
+      cta_label: "Open goals",
+      cta_href: "/goals",
+    });
+  }
+
+  const goalStatus = goalStatuses.find((goal) => goal.status !== "achieved");
+  if (goalStatus) {
+    advice.push({
+      id: "goal-progress",
+      type: "goal_progress_nudge",
+      tone: goalStatus.status === "on_track" ? "success" : "warning",
+      title:
+        goalStatus.status === "on_track"
+          ? `${goalStatus.name} is still within reach`
+          : `${goalStatus.name} needs a stronger monthly contribution`,
+      body:
+        goalStatus.status === "on_track"
+          ? `You are ${goalStatus.progress_percent}% of the way there. Keeping about $${goalStatus.monthly_contribution_needed.toFixed(2)} per month pointed at this goal should keep the deadline realistic.`
+          : `At the current pace, this goal needs about $${goalStatus.monthly_contribution_needed.toFixed(2)} per month. Either increase the contribution or extend the timeline so the plan stays honest.`,
+      cta_label: "Review goals",
+      cta_href: "/goals",
+    });
+  }
+
+  if (subscriptions.length > 0 && advice.length < 4) {
+    const activeSubscriptions = subscriptions.filter((subscription) => subscription.is_active);
+    advice.push({
+      id: "subscription-visibility",
+      type: "grounded_advice",
+      tone: "info",
+      title: "Recurring costs are now part of the picture",
+      body: `eva is tracking ${activeSubscriptions.length} active subscription${activeSubscriptions.length === 1 ? "" : "s"}, so your monthly cash flow is grounded in more than one-off spending alone.`,
+      cta_label: "Open subscriptions",
+      cta_href: "/subscriptions",
+    });
+  }
+
+  return advice.slice(0, 4);
+}
+
 function mapLegacyProfileToFinanceProfile(
   userId: string,
   profile: Partial<LegacyPublicProfile> | Record<string, unknown>,
@@ -386,6 +751,16 @@ export async function buildBootstrap(userId: string, email: string | null = null
     financialEntries,
     subscriptions,
   );
+  const budgetStatuses = buildBudgetStatuses(budgetLimits, spendingEvents);
+  const goalStatuses = buildGoalStatuses(goals, dashboardSummary);
+  const summaries = buildSummaries(spendingEvents, budgetStatuses, goalStatuses);
+  const advice = buildAdvice(
+    dashboardSummary,
+    spendingEvents,
+    budgetStatuses,
+    goalStatuses,
+    subscriptions,
+  );
 
   return {
     user_id: userId,
@@ -403,6 +778,10 @@ export async function buildBootstrap(userId: string, email: string | null = null
     financial_entries: financialEntries,
     subscriptions,
     dashboard_summary: dashboardSummary,
+    advice,
+    summaries,
+    budget_statuses: budgetStatuses,
+    goal_statuses: goalStatuses,
     empty_flags: {
       has_spending_history: spendingEvents.length > 0,
       has_goals: goals.length > 0,

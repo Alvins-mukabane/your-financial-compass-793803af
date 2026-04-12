@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertTriangle,
@@ -21,22 +21,6 @@ export default function Budget() {
   const [newCategory, setNewCategory] = useState(BUDGET_LIMIT_CATEGORIES[0]);
   const [newLimit, setNewLimit] = useState("");
   const [editLimit, setEditLimit] = useState("");
-
-  const spendingByCategory = useMemo(() => {
-    const totals: Record<string, number> = {};
-    const now = new Date();
-    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-
-    bootstrap.spending_logs
-      .filter((log) => log.date.startsWith(currentMonth))
-      .forEach((log) => {
-        log.items.forEach((item) => {
-          totals[item.category] = (totals[item.category] || 0) + Number(item.amount || 0);
-        });
-      });
-
-    return totals;
-  }, [bootstrap.spending_logs]);
 
   const usedCategories = bootstrap.budget_limits.map((budget) => budget.category);
   const availableCategories = BUDGET_LIMIT_CATEGORIES.filter(
@@ -91,11 +75,6 @@ export default function Budget() {
         error instanceof Error ? error.message : "Unable to remove budget right now.",
       );
     }
-  };
-
-  const getPercentage = (category: string, limit: number) => {
-    const spent = spendingByCategory[category] || 0;
-    return limit > 0 ? Math.min((spent / limit) * 100, 100) : 0;
   };
 
   return (
@@ -179,10 +158,13 @@ export default function Budget() {
       ) : (
         <div className="space-y-3">
           {bootstrap.budget_limits.map((budget) => {
-            const spent = spendingByCategory[budget.category] || 0;
-            const percentage = getPercentage(budget.category, budget.monthly_limit);
-            const isOver = spent > budget.monthly_limit;
-            const isNear = percentage >= 80 && !isOver;
+            const status =
+              (bootstrap.budget_statuses ?? []).find((item) => item.category === budget.category) ??
+              null;
+            const spent = status?.spent_this_month ?? 0;
+            const percentage = Math.min(status?.percent_used ?? 0, 100);
+            const isOver = status?.status === "over";
+            const isNear = status?.status === "watch";
 
             return (
               <motion.div
@@ -271,6 +253,15 @@ export default function Budget() {
                           : "bg-primary",
                     )}
                   />
+                </div>
+                <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+                  <span>{Math.round(percentage)}% used</span>
+                  <span>
+                    {formatCurrencyDetailed(
+                      status?.remaining_amount ?? Math.max(budget.monthly_limit - spent, 0),
+                    )}{" "}
+                    left
+                  </span>
                 </div>
               </motion.div>
             );

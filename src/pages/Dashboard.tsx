@@ -13,16 +13,15 @@ import {
   YAxis,
 } from "recharts";
 import {
+  AlertTriangle,
   ArrowRight,
   CreditCard,
-  PiggyBank,
   Sparkles,
   Target,
   TrendingUp,
   Wallet,
 } from "lucide-react";
 import AgentInsights from "@/components/AgentInsights";
-import EbooksSection from "@/components/EbooksSection";
 import HealthScoreGauge from "@/components/HealthScoreGauge";
 import { Button } from "@/components/ui/button";
 import { usePublicUser } from "@/context/PublicUserContext";
@@ -51,6 +50,13 @@ export default function Dashboard() {
   const summary = bootstrap.dashboard_summary;
   const profile = bootstrap.profile;
   const hasSpendingHistory = bootstrap.empty_flags.has_spending_history;
+  const summaries = bootstrap.summaries ?? [];
+  const advice = bootstrap.advice ?? [];
+  const goalStatuses = bootstrap.goal_statuses ?? [];
+  const budgetStatuses = bootstrap.budget_statuses ?? [];
+  const dailySummary = summaries.find((item) => item.period === "daily");
+  const weeklySummary = summaries.find((item) => item.period === "weekly");
+  const nextAction = advice[0] ?? null;
 
   const categoryBreakdown = useMemo(() => {
     const now = new Date();
@@ -92,26 +98,32 @@ export default function Dashboard() {
     return months;
   }, [bootstrap.spending_logs]);
 
-  const topGoals = useMemo(
-    () =>
-      bootstrap.goals
-        .map((goal) => ({
-          ...goal,
-          progress:
-            goal.target_amount > 0
-              ? Math.round((goal.current_amount / goal.target_amount) * 100)
-              : 0,
-        }))
-        .sort((a, b) => b.progress - a.progress)
-        .slice(0, 3),
-    [bootstrap.goals],
+  const topGoals = goalStatuses.slice(0, 3);
+  const budgetAlerts = budgetStatuses.filter(
+    (status) => status.status === "over" || status.status === "watch",
   );
 
   const stats = [
-    { label: "Cash balance", value: formatCurrency(summary.cash_balance), icon: Wallet },
-    { label: "Net worth", value: formatCurrency(summary.net_worth), icon: PiggyBank },
-    { label: "Monthly income", value: formatCurrency(summary.monthly_income), icon: TrendingUp },
-    { label: "Monthly cash flow", value: formatCurrency(summary.monthly_cashflow), icon: Target },
+    { label: "Cash position", value: formatCurrency(summary.cash_balance), icon: Wallet },
+    {
+      label: "Spent this month",
+      value: formatCurrency(summary.spending_this_month),
+      icon: TrendingUp,
+    },
+    {
+      label: "Health score",
+      value: `${summary.health_score}/100`,
+      icon: Sparkles,
+    },
+    {
+      label: "Goal momentum",
+      value: topGoals[0]
+        ? topGoals[0].status === "achieved"
+          ? "Achieved"
+          : `${topGoals[0].progress_percent}%`
+        : "Add goal",
+      icon: Target,
+    },
   ];
 
   const starterCards = [
@@ -162,7 +174,8 @@ export default function Dashboard() {
           {profile?.first_name ? `Welcome, ${profile.first_name}` : "Your Financial Overview"}
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Everything here is based on your onboarding details and the real activity you log.
+          This workspace stays grounded in your onboarding baseline and every real spending record
+          you log.
         </p>
       </motion.div>
 
@@ -186,138 +199,254 @@ export default function Dashboard() {
       </div>
 
       {hasSpendingHistory ? (
-        <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
-          <motion.div
-            custom={4}
-            initial="hidden"
-            animate="visible"
-            variants={fadeUp}
-            className="flex flex-col items-center justify-center rounded-xl border border-border bg-card p-5"
-          >
-            <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Financial health
-            </h2>
-            <HealthScoreGauge score={summary.health_score} />
-          </motion.div>
-
-          <motion.div
-            custom={5}
-            initial="hidden"
-            animate="visible"
-            variants={fadeUp}
-            className="rounded-xl border border-border bg-card p-5"
-          >
-            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Spending breakdown
-            </h2>
-            <div className="h-[160px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={categoryBreakdown}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={40}
-                    outerRadius={65}
-                    stroke="hsl(var(--card))"
-                  >
-                    {categoryBreakdown.map((entry) => (
-                      <Cell
-                        key={entry.name}
-                        fill={
-                          SPENDING_CATEGORY_COLORS[
-                            entry.name as keyof typeof SPENDING_CATEGORY_COLORS
-                          ] || "hsl(var(--chart-5))"
-                        }
-                      />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      background: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "10px",
-                      fontSize: "12px",
-                      color: "hsl(var(--foreground))",
-                      boxShadow: "0 18px 40px -28px rgba(50, 38, 32, 0.45)",
-                    }}
-                    formatter={(value: number) => formatCurrency(value)}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {categoryBreakdown.slice(0, 4).map((category) => (
-                <div
-                  key={category.name}
-                  className="flex items-center gap-1.5 text-[10px] text-muted-foreground"
-                >
-                  <div
-                    className="h-2 w-2 rounded-full"
-                    style={{
-                      background:
-                        SPENDING_CATEGORY_COLORS[
-                          category.name as keyof typeof SPENDING_CATEGORY_COLORS
-                        ],
-                    }}
-                  />
-                  {category.name}
+        <>
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.4fr_1fr]">
+            <motion.div
+              custom={4}
+              initial="hidden"
+              animate="visible"
+              variants={fadeUp}
+              className="rounded-[1.6rem] border border-border bg-card p-5"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                    Next Action
+                  </p>
+                  <h2 className="mt-2 text-xl font-bold tracking-tight text-foreground">
+                    {nextAction?.title ?? "Keep the logging loop going"}
+                  </h2>
+                  <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                    {nextAction?.body ??
+                      "Keep logging expenses in real time so eva can keep the rest of your workspace honest."}
+                  </p>
                 </div>
-              ))}
-            </div>
-          </motion.div>
+                <div className="hidden rounded-2xl bg-primary/10 p-3 text-primary md:block">
+                  <Sparkles className="h-5 w-5" />
+                </div>
+              </div>
 
-          <motion.div
-            custom={6}
-            initial="hidden"
-            animate="visible"
-            variants={fadeUp}
-            className="rounded-xl border border-border bg-card p-5"
-          >
-            <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-              Spending trend
-            </h2>
-            <div className="h-[180px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={monthlyTrend}>
-                  <defs>
-                    <linearGradient id="spendingGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.24} />
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <XAxis
-                    dataKey="month"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
-                  />
-                  <YAxis hide />
-                  <Tooltip
-                    contentStyle={{
-                      background: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "10px",
-                      fontSize: "12px",
-                      color: "hsl(var(--foreground))",
-                      boxShadow: "0 18px 40px -28px rgba(50, 38, 32, 0.45)",
-                    }}
-                    formatter={(value: number) => formatCurrency(value)}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="spending"
-                    stroke="hsl(var(--primary))"
-                    fill="url(#spendingGrad)"
-                    strokeWidth={2}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </motion.div>
-        </div>
+              <div className="mt-5 flex flex-wrap gap-3">
+                <Button
+                  type="button"
+                  onClick={() => navigate(nextAction?.cta_href ?? "/chat")}
+                  className="justify-between"
+                >
+                  {nextAction?.cta_label ?? "Log another expense"}
+                  <ArrowRight className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => navigate("/spending-history")}
+                >
+                  Review spending history
+                </Button>
+              </div>
+            </motion.div>
+
+            <motion.div
+              custom={5}
+              initial="hidden"
+              animate="visible"
+              variants={fadeUp}
+              className="rounded-[1.6rem] border border-border bg-card p-5"
+            >
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                Budget Pressure
+              </p>
+              {budgetAlerts.length === 0 ? (
+                <div className="mt-4 rounded-xl border border-border bg-background/75 p-4">
+                  <p className="text-sm font-semibold text-foreground">No category is under pressure</p>
+                  <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
+                    Your active budget limits are currently holding. Keep logging in real time so
+                    eva can warn you before a category drifts over the line.
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-4 space-y-3">
+                  {budgetAlerts.slice(0, 3).map((status) => (
+                    <div key={status.category} className="rounded-xl border border-border bg-background/75 p-4">
+                      <div className="flex items-center gap-2">
+                        <AlertTriangle
+                          className={`h-4 w-4 ${
+                            status.status === "over" ? "text-destructive" : "text-[hsl(var(--chart-4))]"
+                          }`}
+                        />
+                        <p className="text-sm font-semibold text-foreground">{status.category}</p>
+                      </div>
+                      <p className="mt-2 text-sm text-muted-foreground">
+                        {status.status === "over"
+                          ? `${formatCurrency(status.spent_this_month)} spent against a ${formatCurrency(status.monthly_limit)} limit.`
+                          : `${status.percent_used}% of the budget is already used this month.`}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </motion.div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-3">
+            <motion.div
+              custom={6}
+              initial="hidden"
+              animate="visible"
+              variants={fadeUp}
+              className="flex flex-col items-center justify-center rounded-xl border border-border bg-card p-5"
+            >
+              <h2 className="mb-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Financial health
+              </h2>
+              <HealthScoreGauge score={summary.health_score} />
+            </motion.div>
+
+            {[dailySummary, weeklySummary].map((item, index) => (
+              <motion.div
+                key={item?.period ?? index}
+                custom={index + 7}
+                initial="hidden"
+                animate="visible"
+                variants={fadeUp}
+                className="rounded-xl border border-border bg-card p-5"
+              >
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  {item?.period === "daily" ? "Daily summary" : "Weekly summary"}
+                </p>
+                <h2 className="mt-3 text-base font-semibold text-foreground">
+                  {item?.headline ?? "Summary unavailable"}
+                </h2>
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  {item?.body ?? "Keep logging real activity and eva will fill this summary in."}
+                </p>
+                <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{formatCurrency(item?.total_spent ?? 0)} tracked</span>
+                  <span>{item?.event_count ?? 0} log(s)</span>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+            <motion.div
+              custom={9}
+              initial="hidden"
+              animate="visible"
+              variants={fadeUp}
+              className="rounded-xl border border-border bg-card p-5"
+            >
+              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Spending breakdown
+              </h2>
+              <div className="h-[160px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={categoryBreakdown}
+                      dataKey="value"
+                      nameKey="name"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={40}
+                      outerRadius={65}
+                      stroke="hsl(var(--card))"
+                    >
+                      {categoryBreakdown.map((entry) => (
+                        <Cell
+                          key={entry.name}
+                          fill={
+                            SPENDING_CATEGORY_COLORS[
+                              entry.name as keyof typeof SPENDING_CATEGORY_COLORS
+                            ] || "hsl(var(--chart-5))"
+                          }
+                        />
+                      ))}
+                    </Pie>
+                    <Tooltip
+                      contentStyle={{
+                        background: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "10px",
+                        fontSize: "12px",
+                        color: "hsl(var(--foreground))",
+                        boxShadow: "0 18px 40px -28px rgba(50, 38, 32, 0.45)",
+                      }}
+                      formatter={(value: number) => formatCurrency(value)}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {categoryBreakdown.slice(0, 4).map((category) => (
+                  <div
+                    key={category.name}
+                    className="flex items-center gap-1.5 text-[10px] text-muted-foreground"
+                  >
+                    <div
+                      className="h-2 w-2 rounded-full"
+                      style={{
+                        background:
+                          SPENDING_CATEGORY_COLORS[
+                            category.name as keyof typeof SPENDING_CATEGORY_COLORS
+                          ],
+                      }}
+                    />
+                    {category.name}
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+
+            <motion.div
+              custom={10}
+              initial="hidden"
+              animate="visible"
+              variants={fadeUp}
+              className="rounded-xl border border-border bg-card p-5"
+            >
+              <h2 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Spending trend
+              </h2>
+              <div className="h-[180px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={monthlyTrend}>
+                    <defs>
+                      <linearGradient id="spendingGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.24} />
+                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <XAxis
+                      dataKey="month"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }}
+                    />
+                    <YAxis hide />
+                    <Tooltip
+                      contentStyle={{
+                        background: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "10px",
+                        fontSize: "12px",
+                        color: "hsl(var(--foreground))",
+                        boxShadow: "0 18px 40px -28px rgba(50, 38, 32, 0.45)",
+                      }}
+                      formatter={(value: number) => formatCurrency(value)}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="spending"
+                      stroke="hsl(var(--primary))"
+                      fill="url(#spendingGrad)"
+                      strokeWidth={2}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </motion.div>
+          </div>
+        </>
       ) : (
         <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.4fr_1fr]">
           <motion.div
@@ -419,12 +548,12 @@ export default function Dashboard() {
       )}
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-[1.4fr_1fr]">
-        <motion.div custom={7} initial="hidden" animate="visible" variants={fadeUp}>
+        <motion.div custom={11} initial="hidden" animate="visible" variants={fadeUp}>
           <AgentInsights />
         </motion.div>
 
         <motion.div
-          custom={8}
+          custom={12}
           initial="hidden"
           animate="visible"
           variants={fadeUp}
@@ -457,22 +586,39 @@ export default function Dashboard() {
                         </p>
                       </div>
                     </div>
-                    <span className="text-sm font-bold text-primary">{goal.progress}%</span>
+                    <span
+                      className={`text-xs font-semibold ${
+                        goal.status === "achieved"
+                          ? "text-primary"
+                          : goal.status === "on_track"
+                            ? "text-[hsl(var(--chart-2))]"
+                            : "text-[hsl(var(--chart-4))]"
+                      }`}
+                    >
+                      {goal.status === "achieved"
+                        ? "Done"
+                        : goal.status === "on_track"
+                          ? "On track"
+                          : "Needs attention"}
+                    </span>
                   </div>
                   <div className="mt-3 h-2 overflow-hidden rounded-full bg-secondary">
                     <div
                       className="h-full rounded-full bg-primary transition-all"
-                      style={{ width: `${Math.max(0, Math.min(100, goal.progress))}%` }}
+                      style={{ width: `${Math.max(0, Math.min(100, goal.progress_percent))}%` }}
                     />
                   </div>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    {goal.status === "achieved"
+                      ? "This goal is fully funded."
+                      : `${formatCurrency(goal.monthly_contribution_needed)} per month keeps the current deadline realistic.`}
+                  </p>
                 </div>
               ))}
             </div>
           )}
         </motion.div>
       </div>
-
-      <EbooksSection />
     </div>
   );
 }

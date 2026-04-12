@@ -113,6 +113,60 @@ export interface DashboardSummary {
   latest_spending_date: string | null;
 }
 
+export type AdviceType =
+  | "spending_acknowledgement"
+  | "grounded_advice"
+  | "budget_warning"
+  | "goal_progress_nudge";
+
+export type AdviceTone = "info" | "success" | "warning";
+
+export interface AdviceResult {
+  id: string;
+  type: AdviceType;
+  tone: AdviceTone;
+  title: string;
+  body: string;
+  cta_label: string | null;
+  cta_href: string | null;
+}
+
+export type SummaryPeriod = "daily" | "weekly";
+
+export interface SummaryResult {
+  period: SummaryPeriod;
+  status: "ready" | "needs_more_data";
+  headline: string;
+  body: string;
+  total_spent: number;
+  event_count: number;
+  top_category: string | null;
+  generated_at: string;
+}
+
+export interface BudgetStatus {
+  category: string;
+  monthly_limit: number;
+  spent_this_month: number;
+  remaining_amount: number;
+  percent_used: number;
+  status: "healthy" | "watch" | "over";
+}
+
+export interface GoalStatus {
+  id: string;
+  name: string;
+  icon: string;
+  target_amount: number;
+  current_amount: number;
+  remaining_amount: number;
+  progress_percent: number;
+  deadline: string;
+  days_remaining: number;
+  monthly_contribution_needed: number;
+  status: "on_track" | "needs_attention" | "achieved";
+}
+
 export interface EmptyFlags {
   has_spending_history: boolean;
   has_goals: boolean;
@@ -139,6 +193,10 @@ export interface BootstrapData {
   financial_entries: FinancialEntry[];
   subscriptions: Subscription[];
   dashboard_summary: DashboardSummary;
+  advice: AdviceResult[];
+  summaries: SummaryResult[];
+  budget_statuses: BudgetStatus[];
+  goal_statuses: GoalStatus[];
   empty_flags: EmptyFlags;
 }
 

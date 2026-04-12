@@ -32,6 +32,10 @@ function createEmptyBootstrap(userId = "", email: string | null = null): Bootstr
     financial_entries: [],
     subscriptions: [],
     dashboard_summary: { ...EMPTY_DASHBOARD_SUMMARY },
+    advice: [],
+    summaries: [],
+    budget_statuses: [],
+    goal_statuses: [],
     empty_flags: {
       has_spending_history: false,
       has_goals: false,

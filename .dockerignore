@@ -1,0 +1,10 @@
+node_modules
+dist
+.git
+.github
+.vercel
+.env
+.env.local
+.env.production.local
+supabase/.temp
+npm-debug.log

@@ -45,6 +45,8 @@ export default function StockPicks() {
   const [foolFocus, setFoolFocus] = useState("");
   const [loading, setLoading] = useState(false);
   const [filter, setFilter] = useState("All");
+  const [fetchAttempted, setFetchAttempted] = useState(false);
+  const [limitedMessage, setLimitedMessage] = useState("");
 
   const normalizeRecommendations = (items: RawStockRec[] = []): StockRec[] =>
     items
@@ -82,6 +84,7 @@ export default function StockPicks() {
       return;
     }
 
+    setFetchAttempted(true);
     setLoading(true);
     try {
       const data = await invokeEdgeFunction<{
@@ -94,7 +97,17 @@ export default function StockPicks() {
       setRecs(normalized);
       setMarketPulse(data.market_pulse || data.summary || "");
       setFoolFocus(data.motley_fool_focus || "");
+      setLimitedMessage(
+        normalized.length === 0
+          ? data.summary ||
+              data.market_pulse ||
+              "Live market research is thin right now, so eva is holding back instead of showing weak or ungrounded picks."
+          : "",
+      );
     } catch (e: any) {
+      setLimitedMessage(
+        "Market research is temporarily unavailable. Try again shortly and eva will fetch a fresh grounded set of ideas.",
+      );
       toast.error(e.message || "Failed to fetch recommendations");
     } finally {
       setLoading(false);
@@ -143,7 +156,10 @@ export default function StockPicks() {
             <BarChart3 className="w-8 h-8 text-primary" />
           </div>
           <p className="text-sm text-muted-foreground max-w-sm">
-            Get AI-curated stock picks synced with Motley Fool Stock Advisor newsletters, Goldman Sachs, and other top research firms.
+            {fetchAttempted
+              ? limitedMessage ||
+                "eva could not ground a strong set of picks from live market research just now."
+              : "Get AI-curated stock picks synced with Motley Fool Stock Advisor newsletters, Goldman Sachs, and other top research firms."}
           </p>
         </div>
       )}

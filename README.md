@@ -1,135 +1,127 @@
-AI Financial Chat Advisor
-Your Personal AI for Smarter Financial Decisions
-🧠 Overview
+# eva
 
-AI Financial Chat Advisor is a conversational, AI-powered financial intelligence system that helps users understand and improve their financial behavior through simple daily interactions.
+eva is a public web personal-finance copilot built around one reliable loop:
 
-Instead of dashboards and spreadsheets, users interact with a chat-based interface to log spending, analyze habits, and receive real-time, actionable financial advice.
+`log spending -> see it reflected everywhere -> get grounded advice -> take the next action`
 
-💡 Problem
+The app is web-first on [eva.useaima.com](https://eva.useaima.com), uses Supabase for auth/data/functions, and keeps launch operations managed-first on Vercel + Supabase.
 
-Most financial tools:
+## Phase B focus
 
-Show data but don’t explain it
-Don’t help users make better decisions
-Require complex setup or bank integrations
+Phase B turns eva into a trustworthy public launch product by making the canonical workspace snapshot the source of truth for:
 
-As a result, users:
+- dashboard summary
+- spending history
+- goals
+- budgets
+- subscriptions
+- financial statements
+- daily and weekly summaries
+- actionable advice cards
 
-Don’t understand their spending habits
-Make poor financial decisions
-Struggle to stay consistent
-✅ Solution
+Stock picks and finance news remain available, but they are secondary and must fail gracefully.
 
-This project introduces a chat-first financial assistant that:
+## Architecture
 
-Understands spending in natural language
-Analyzes behavior over time
-Provides clear, actionable advice
-Helps users optimize spending and subscriptions
-✨ Features
-🗨️ Conversational Interface
-Chat-based interaction (no dashboards required)
-Natural language input for daily spending
-📊 AI-Powered Expense Analysis
-Automatically extracts categories and amounts
-Tracks spending patterns over time
-🧠 Behavioral Insights
-Detects habits and trends
-Identifies overspending patterns
-💡 Smart Financial Advice
-Real-time recommendations
-Actionable suggestions to improve spending
-📅 Daily & Weekly Summaries
-Spending breakdowns
-Trend analysis
-Personalized insights
-💳 Subscription Management
-Track all subscriptions in one place
-Analyze total recurring costs
-AI recommendations:
-What to cancel
-What to keep
-Where to save
-📈 Financial Health Score
-Simple score based on spending behavior
-Helps users track improvement over time
-🛠️ Tech Stack
-Frontend: TypeScript
-Backend: Cloud-based services
-Database: Supabase
-AI/NLP: Language models for parsing & insights
-⚙️ How It Works
-User Input
-Users describe their daily spending in natural language
-AI Parsing
-Extracts structured data (categories, amounts)
-Analysis Engine
-Detects patterns and evaluates behavior
-Insight Generation
-Provides actionable financial advice
-🚀 Getting Started
-1. Clone the Repository
-git clone https://github.com/your-username/your-repo.git
-cd your-repo
-2. Install Dependencies
-npm install
-3. Run the App
+### Frontend
+
+- Vite + React + TypeScript
+- Route-protected authenticated workspace
+- Chat-led product flow with structured companion views
+
+### Backend
+
+- Supabase Auth with email verification
+- Supabase Postgres for canonical finance data
+- Supabase Edge Functions for `finance-core`, chat, insights, statements, stock picks, and news
+- Gemini-first orchestration through the shared EVA gateway
+
+### Canonical workspace snapshot
+
+`finance-core` returns the authenticated workspace state used across the app:
+
+- `dashboard_summary`
+- `advice`
+- `summaries`
+- `budget_statuses`
+- `goal_statuses`
+- `spending_logs`
+- `financial_entries`
+- `subscriptions`
+
+## Local development
+
+### Prerequisites
+
+- Node.js 22+
+- npm
+
+### Required environment variables
+
+Copy values into your shell or `.env` file:
+
+- `VITE_SUPABASE_PROJECT_ID`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
+- `VITE_SUPABASE_URL`
+
+Recommended for richer AI and research features:
+
+- `GROQ_API_KEY`
+- `TAVILY_API_KEY`
+
+### Commands
+
+```bash
+npm ci
+npm run validate-env
 npm run dev
-📌 Usage
+```
 
-Example input:
+Quality checks:
 
-I spent $20 on food and $10 on transport today
+```bash
+npm run build
+npm run lint
+npm run test
+npm run ci
+```
 
-Example output:
+## Docker
 
-Food is your highest expense today. Reducing it slightly could improve your financial balance.
-🔮 Roadmap
-Phase 1 (Current)
-Chat-based financial advisor
-Manual spending input
-Subscription tracking
-Phase 2
-CSV upload for transaction data
-Advanced behavioral analysis
-Goal tracking
-Phase 3
-Bank & wallet integrations
-Automated financial tracking
-Phase 4
-Crypto & DeFi insights
-Portfolio analysis
-Phase 5
-Autonomous financial agent
-AI-driven financial execution
-⚠️ Disclaimer
+eva includes a small multi-stage Docker build for reproducible web builds and local runtime parity.
 
-This project provides informational financial insights only and does not constitute professional financial advice.
+Build:
 
-🤝 Contributing
+```bash
+npm run docker:build
+```
 
-Contributions are welcome!
+Run:
 
-Fork the repo
-Create a new branch
-Submit a pull request
-📄 License
+```bash
+npm run docker:run
+```
 
-MIT License
+The container serves the production build through nginx on port `8080`.
 
-🌍 Vision
+## CI
 
-This project is the first step toward building:
+GitHub Actions runs the Phase B launch checks in [ci.yml](./.github/workflows/ci.yml):
 
-A Personal Financial Operating System powered by AI agents
+- install dependencies
+- validate environment
+- build
+- lint
+- test
 
-A system that not only understands money—but helps users make better decisions and eventually manage their finances autonomously.
+## Product principles
 
-⭐ Support
+- personal finance first
+- grounded advice over generic AI output
+- trust before power
+- chat first, structured views second
+- managed infrastructure first, Kubernetes later
 
-If you like this project:
+## Disclaimer
 
-Star ⭐ the repo
-Share it
-Contribute
+eva provides informational guidance and productized financial coaching. It does not provide legal, tax, or professional investment advice.

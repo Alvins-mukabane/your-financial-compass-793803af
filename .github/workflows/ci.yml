@@ -1,0 +1,43 @@
+name: ci
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      VITE_SUPABASE_PROJECT_ID: ci-project-id
+      VITE_SUPABASE_PUBLISHABLE_KEY: ci-publishable-key
+      VITE_SUPABASE_URL: https://ci-project-id.supabase.co
+      GROQ_API_KEY: ci-groq-key
+      TAVILY_API_KEY: ci-tavily-key
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Validate environment
+        run: npm run validate-env
+
+      - name: Build
+        run: npm run build
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm run test
