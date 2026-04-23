@@ -36,7 +36,7 @@ jobs:
         working-directory: apps/web
 
       - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
+        run: TMPDIR=/tmp TEMP=/tmp TMP=/tmp PLAYWRIGHT_BROWSERS_PATH=0 npx playwright install --with-deps chromium
         working-directory: apps/web
 
       - name: Validate environment
