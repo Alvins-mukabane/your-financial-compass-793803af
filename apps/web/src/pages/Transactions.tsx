@@ -215,7 +215,7 @@ export default function Transactions() {
   };
 
   return (
-    <div className="mx-auto max-w-[980px] space-y-5 p-4 md:p-8">
+    <div data-testid="transactions-shell" className="mx-auto max-w-[980px] space-y-5 p-4 md:p-8">
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
         <h1 className="text-2xl font-bold tracking-tight">Transactions</h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -279,6 +279,7 @@ export default function Transactions() {
             </div>
             <Button
               type="button"
+              data-testid="transactions-upload-csv"
               onClick={() => fileInputRef.current?.click()}
               disabled={importing}
               className="gap-2"
@@ -314,10 +315,10 @@ export default function Transactions() {
           </p>
           <div className="mt-4 flex items-center gap-2 rounded-2xl border border-border/80 bg-background/80 px-3 py-3">
             <Mail className="h-4 w-4 text-primary" />
-            <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+            <span data-testid="transactions-receipt-address" className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
               {receiptForwardAddress}
             </span>
-            <Button type="button" variant="outline" size="sm" onClick={handleCopyReceiptAddress}>
+            <Button data-testid="transactions-copy-receipt-address" type="button" variant="outline" size="sm" onClick={handleCopyReceiptAddress}>
               <Copy className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -337,7 +338,7 @@ export default function Transactions() {
       </div>
 
       {bootstrap.import_jobs.length > 0 && (
-        <div className="space-y-3 rounded-[1.5rem] border border-border bg-card p-5">
+        <div data-testid="transactions-import-jobs" className="space-y-3 rounded-[1.5rem] border border-border bg-card p-5">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
               Recent import jobs
@@ -372,7 +373,7 @@ export default function Transactions() {
       )}
 
       {pendingDrafts.length > 0 && (
-        <div className="space-y-3 rounded-[1.5rem] border border-border bg-card p-5">
+        <div data-testid="transactions-review-queue" className="space-y-3 rounded-[1.5rem] border border-border bg-card p-5">
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
@@ -428,15 +429,15 @@ export default function Transactions() {
                 </div>
 
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <Button type="button" size="sm" className="gap-1.5" onClick={() => handleReviewDecision(draft.id, "approve")}>
+                    <Button data-testid={`draft-approve-${draft.id}`} type="button" size="sm" className="gap-1.5" onClick={() => handleReviewDecision(draft.id, "approve")}>
                     <Check className="h-3.5 w-3.5" />
                     Approve
                   </Button>
-                  <Button type="button" size="sm" variant="outline" className="gap-1.5" onClick={() => openDraftEditor(draft.id)}>
+                    <Button data-testid={`draft-edit-${draft.id}`} type="button" size="sm" variant="outline" className="gap-1.5" onClick={() => openDraftEditor(draft.id)}>
                     <PencilLine className="h-3.5 w-3.5" />
                     Edit
                   </Button>
-                  <Button type="button" size="sm" variant="outline" className="gap-1.5 text-destructive hover:text-destructive" onClick={() => handleReviewDecision(draft.id, "reject")}>
+                    <Button data-testid={`draft-reject-${draft.id}`} type="button" size="sm" variant="outline" className="gap-1.5 text-destructive hover:text-destructive" onClick={() => handleReviewDecision(draft.id, "reject")}>
                     <X className="h-3.5 w-3.5" />
                     Reject
                   </Button>
@@ -455,6 +456,7 @@ export default function Transactions() {
       >
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
+          data-testid="transactions-search"
           value={search}
           onChange={(event) => setSearch(event.target.value)}
           placeholder="Search approved transaction descriptions..."

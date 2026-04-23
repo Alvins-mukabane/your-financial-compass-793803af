@@ -167,11 +167,12 @@ export default function Dashboard() {
   ];
 
   return (
-    <div className="mx-auto max-w-[1200px] space-y-6 p-4 md:p-8">
+    <div data-testid="dashboard-shell" className="mx-auto max-w-[1200px] space-y-6 p-4 md:p-8">
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+        data-testid="dashboard-overview"
         className="rounded-[1.9rem] border border-border/80 bg-card/95 p-5 shadow-[0_24px_70px_-44px_rgba(110,73,75,0.28)] md:p-6"
       >
         <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
@@ -191,7 +192,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="rounded-[1.4rem] border border-primary/15 bg-primary/8 p-4 lg:max-w-sm">
+          <div data-testid="dashboard-next-action" className="rounded-[1.4rem] border border-primary/15 bg-primary/8 p-4 lg:max-w-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">
               Next recommendation
             </p>
@@ -222,6 +223,7 @@ export default function Dashboard() {
             initial="hidden"
             animate="visible"
             variants={fadeUp}
+            data-testid={`dashboard-stat-${stat.label.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
             className="space-y-3 rounded-[1.35rem] border border-border/80 bg-card/95 p-4 shadow-[0_18px_48px_-38px_rgba(110,73,75,0.2)]"
           >
             <div className="flex items-center justify-between">
@@ -372,6 +374,7 @@ export default function Dashboard() {
               initial="hidden"
               animate="visible"
               variants={fadeUp}
+              data-testid="dashboard-forecast"
               className="rounded-xl border border-border bg-card p-5"
             >
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -415,6 +418,7 @@ export default function Dashboard() {
               initial="hidden"
               animate="visible"
               variants={fadeUp}
+              data-testid="dashboard-pattern-watch"
               className="rounded-xl border border-border bg-card p-5"
             >
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -455,6 +459,7 @@ export default function Dashboard() {
               initial="hidden"
               animate="visible"
               variants={fadeUp}
+              data-testid="dashboard-subscription-review"
               className="rounded-xl border border-border bg-card p-5"
             >
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">

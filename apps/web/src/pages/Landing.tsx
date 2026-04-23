@@ -72,7 +72,7 @@ export default function Landing() {
         </nav>
 
         <main>
-          <section className="mx-auto max-w-[1200px] px-6 pb-24 pt-20 text-center">
+          <section data-testid="landing-hero" className="mx-auto max-w-[1200px] px-6 pb-24 pt-20 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -104,12 +104,12 @@ export default function Landing() {
 
             <div className="flex items-center justify-center gap-3 pt-2">
               <Link to={isAuthenticated ? workspacePath : signUpPath}>
-                <Button size="lg" className="gap-2 px-8">
+                <Button data-testid="landing-primary-cta" size="lg" className="gap-2 px-8">
                   {primaryCta} <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
               <Link to={isAuthenticated ? workspacePath : signInPath}>
-                <Button variant="outline" size="lg" className="px-8">
+                <Button data-testid="landing-secondary-cta" variant="outline" size="lg" className="px-8">
                   {secondaryCta}
                 </Button>
               </Link>

@@ -84,6 +84,7 @@ function NavigationButton({
   return (
     <button
       type="button"
+      data-testid={`nav-item-${item.path.replace("/", "") || "root"}-${variant}`}
       onClick={onClick}
       className={cn(
         "relative flex w-full items-center gap-3 rounded-2xl text-left font-medium transition-colors",
@@ -137,7 +138,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-          <nav className="space-y-3 pb-2">
+          <nav data-testid="desktop-navigation" className="space-y-3 pb-2">
             <div className="space-y-1 rounded-[1.5rem] border border-border/80 bg-card/90 p-2 shadow-[0_18px_40px_-34px_rgba(110,73,75,0.18)]">
               {desktopMenuItems.map((item) => (
                 <NavigationButton
@@ -154,22 +155,31 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
       <header className="fixed inset-x-0 top-0 z-40 hidden border-b border-border/90 bg-[hsl(var(--background)/0.94)] shadow-[0_16px_32px_-28px_rgba(110,73,75,0.25)] backdrop-blur-xl md:flex">
         <div className="flex h-16 w-full items-center justify-between gap-3 px-6 md:ml-[236px]">
-          <BrandLockup
-            size="sm"
-            subtitleClassName="hidden"
-            titleClassName="text-[1.05rem]"
-            iconClassName="h-10 w-10 rounded-[0.95rem]"
-          />
+          <div className="flex min-w-0 items-center gap-3">
+            <BrandLockup
+              size="sm"
+              subtitleClassName="hidden"
+              titleClassName="text-[1.05rem]"
+              iconClassName="h-10 w-10 rounded-[0.95rem]"
+            />
+            <div className="hidden min-w-0 lg:block">
+              <p className="text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                Active section
+              </p>
+              <p className="truncate text-sm font-semibold text-foreground">{activeSectionLabel}</p>
+            </div>
+          </div>
           <UserProfileMenu compact />
         </div>
       </header>
 
       <header className="fixed inset-x-0 top-0 z-40 border-b border-border/90 bg-[hsl(var(--background)/0.94)] shadow-[0_16px_32px_-28px_rgba(110,73,75,0.25)] backdrop-blur-xl md:hidden">
-        <div className="flex h-16 items-center justify-between gap-3 px-4">
+        <div data-testid="mobile-header" className="flex h-16 items-center justify-between gap-3 px-4">
           <Sheet open={isMobileNavOpen} onOpenChange={setIsMobileNavOpen}>
             <SheetTrigger asChild>
               <button
                 type="button"
+                data-testid="mobile-nav-trigger"
                 className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-border/80 bg-card/90 text-foreground shadow-[0_14px_28px_-22px_rgba(110,73,75,0.3)] transition-colors hover:bg-secondary"
                 aria-label="Open navigation menu"
               >
@@ -179,6 +189,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
             <SheetContent
               side="left"
+              data-testid="mobile-nav-drawer"
               className="flex h-full w-[88vw] max-w-[22rem] flex-col gap-0 border-r border-border/80 bg-[hsl(var(--background)/0.98)] p-0"
             >
               <SheetHeader className="border-b border-border/80 px-5 pb-4 pt-6 text-left">
@@ -201,7 +212,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               </SheetHeader>
 
               <ScrollArea className="flex-1 px-4 py-4">
-                <nav className="space-y-5 pb-6">
+                <nav data-testid="mobile-navigation" className="space-y-5 pb-6">
                   {navigationSections.map((section) => (
                     <div key={section.label} className="space-y-2">
                       <p className="px-2 text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -238,7 +249,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main className="window-controls-safe-main flex-1 px-0 pb-8 pt-16 md:ml-[236px] md:pt-16">
+      <main data-testid="app-shell-main" className="window-controls-safe-main flex-1 px-0 pb-8 pt-16 md:ml-[236px] md:pt-16">
         {children}
       </main>
     </div>

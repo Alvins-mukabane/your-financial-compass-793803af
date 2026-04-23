@@ -127,6 +127,7 @@ export default function UserProfileMenu({
             type="button"
             variant="ghost"
             size="icon"
+            data-testid="profile-menu-trigger"
             className={cn(
               "h-11 w-11 rounded-full border border-border/80 bg-card/90 p-0 shadow-[0_14px_28px_-22px_rgba(110,73,75,0.3)]",
               className,
@@ -143,6 +144,7 @@ export default function UserProfileMenu({
         ) : (
           <button
             type="button"
+            data-testid="profile-menu-trigger"
             className={cn(
               "flex w-full items-center gap-3 rounded-[1.25rem] border border-border/80 bg-card/90 px-3 py-3 text-left shadow-[0_18px_40px_-34px_rgba(110,73,75,0.18)] transition-colors hover:border-primary/35 hover:bg-secondary/60",
               className,
@@ -160,10 +162,11 @@ export default function UserProfileMenu({
       </DropdownMenuTrigger>
 
       <DropdownMenuContent
+        data-testid="profile-menu-content"
         align="end"
         sideOffset={12}
         className={cn(
-          "w-[19rem] rounded-2xl border border-border bg-[hsl(var(--popover)/0.99)] p-2 text-popover-foreground shadow-[0_32px_80px_-46px_rgba(24,28,16,0.42)] ring-1 ring-border/60 backdrop-blur-xl",
+          "w-[19rem] rounded-2xl border border-border bg-card p-2 text-popover-foreground shadow-[0_32px_80px_-46px_rgba(24,28,16,0.42)] ring-1 ring-border/60",
           contentClassName,
         )}
       >
@@ -184,6 +187,7 @@ export default function UserProfileMenu({
           {profileLinks.map((item) => (
             <DropdownMenuItem
               key={item.section}
+              data-testid={`profile-menu-${item.section}`}
               className="mt-1 rounded-xl px-3 py-2.5"
               onSelect={(event) => {
                 event.preventDefault();
@@ -202,6 +206,7 @@ export default function UserProfileMenu({
         </DropdownMenuLabel>
         <DropdownMenuGroup>
           <DropdownMenuItem
+            data-testid="profile-menu-install"
             className="rounded-xl px-3 py-2.5"
             onSelect={(event) => {
               event.preventDefault();
@@ -212,6 +217,7 @@ export default function UserProfileMenu({
             Install App
           </DropdownMenuItem>
           <DropdownMenuItem
+            data-testid="profile-menu-terms"
             className="rounded-xl px-3 py-2.5"
             onSelect={(event) => {
               event.preventDefault();
@@ -222,6 +228,7 @@ export default function UserProfileMenu({
             Terms
           </DropdownMenuItem>
           <DropdownMenuItem
+            data-testid="profile-menu-privacy"
             className="rounded-xl px-3 py-2.5"
             onSelect={(event) => {
               event.preventDefault();
@@ -232,6 +239,7 @@ export default function UserProfileMenu({
             Privacy
           </DropdownMenuItem>
           <DropdownMenuItem
+            data-testid="profile-menu-signout"
             className="rounded-xl px-3 py-2.5 text-destructive focus:bg-destructive/10 focus:text-destructive"
             onSelect={(event) => {
               event.preventDefault();

@@ -754,7 +754,7 @@ export default function Onboarding() {
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background px-4 py-6 md:px-8 md:py-10">
+    <div data-testid="onboarding-shell" className="relative min-h-screen overflow-hidden bg-background px-4 py-6 md:px-8 md:py-10">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[32rem]">
         <div className="absolute left-1/2 top-[-10rem] h-[28rem] w-[44rem] -translate-x-1/2 rounded-full bg-primary/16 blur-3xl" />
         <div className="absolute right-[8%] top-24 h-56 w-56 rounded-full bg-[hsl(149_53%_35%/0.06)] blur-3xl" />
@@ -764,6 +764,7 @@ export default function Onboarding() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
+          data-step={currentStep.id}
           className="rounded-[2rem] border border-border/80 bg-card/96 p-6 shadow-[0_30px_85px_-52px_rgba(110,73,75,0.34)] backdrop-blur-xl"
         >
           <div className="mb-6 flex items-center justify-between gap-4">
@@ -780,7 +781,7 @@ export default function Onboarding() {
               <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
                 {currentStep.label}
               </p>
-              <div className="flex items-center gap-2">
+              <div data-testid="onboarding-progress" className="flex items-center gap-2">
                 {steps.map((step, index) => (
                   <div
                     key={step.id}
@@ -834,7 +835,7 @@ export default function Onboarding() {
                   </div>
                 ))}
               </div>
-              <Button size="lg" className="gap-2 px-8" onClick={moveToNext}>
+              <Button data-testid="onboarding-continue" size="lg" className="gap-2 px-8" onClick={moveToNext}>
                 Get Started
                 <ArrowRight className="h-4 w-4" />
               </Button>
@@ -942,7 +943,7 @@ export default function Onboarding() {
 
               <div className="flex items-center justify-between">
                 <StepBackButton onClick={goBack} />
-                <Button onClick={moveToNext} disabled={!canContinue()} className="gap-2">
+                <Button data-testid="onboarding-continue" onClick={moveToNext} disabled={!canContinue()} className="gap-2">
                   Continue
                   <ArrowRight className="h-4 w-4" />
                 </Button>
@@ -1008,7 +1009,7 @@ export default function Onboarding() {
 
               <div className="flex items-center justify-between">
                 <StepBackButton onClick={goBack} />
-                <Button onClick={moveToNext} disabled={!canContinue()} className="gap-2">
+                <Button data-testid="onboarding-continue" onClick={moveToNext} disabled={!canContinue()} className="gap-2">
                   Continue
                   <ArrowRight className="h-4 w-4" />
                 </Button>
@@ -1429,7 +1430,7 @@ export default function Onboarding() {
                 >
                   Skip extras for now
                 </button>
-                <Button onClick={moveToNext} disabled={!canContinue()} className="gap-2">
+                <Button data-testid="onboarding-continue" onClick={moveToNext} disabled={!canContinue()} className="gap-2">
                   Continue
                   <ArrowRight className="h-4 w-4" />
                 </Button>
@@ -1504,6 +1505,7 @@ export default function Onboarding() {
                     Skip for now
                   </button>
                   <Button
+                    data-testid="onboarding-finish"
                     onClick={() => {
                       if (!firstActionPrompt.trim()) {
                         toast.error("Add one real expense so the onboarding ends with action.");

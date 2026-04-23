@@ -494,7 +494,7 @@ export default function Auth({ forcedMode }: AuthProps) {
     : signUpPasswordStrength.level;
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-background px-4 py-6 md:px-8 md:py-10">
+    <div data-testid="auth-shell" className="relative min-h-screen overflow-hidden bg-background px-4 py-6 md:px-8 md:py-10">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[32rem]">
         <div className="absolute left-1/2 top-[-10rem] h-[28rem] w-[46rem] -translate-x-1/2 rounded-full bg-primary/16 blur-3xl" />
         <div className="absolute right-[6%] top-24 h-56 w-56 rounded-full bg-[hsl(149_53%_35%/0.06)] blur-3xl" />
@@ -582,13 +582,14 @@ export default function Auth({ forcedMode }: AuthProps) {
           </div>
 
           {currentMode === "signin" && (
-            <form className="space-y-4" onSubmit={handleSignIn}>
+            <form data-testid="auth-signin-form" className="space-y-4" onSubmit={handleSignIn}>
               <div className="space-y-2">
                 <Label htmlFor="signin-email">Email address</Label>
                 <div className="relative">
                   <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="signin-email"
+                    data-testid="auth-signin-email"
                     type="email"
                     autoComplete="email"
                     placeholder="you@example.com"
@@ -605,6 +606,7 @@ export default function Auth({ forcedMode }: AuthProps) {
                   <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="signin-password"
+                    data-testid="auth-signin-password"
                     type="password"
                     autoComplete="current-password"
                     placeholder="Enter your password"
@@ -615,7 +617,7 @@ export default function Auth({ forcedMode }: AuthProps) {
                 </div>
               </div>
 
-              <Button type="submit" size="lg" className="w-full gap-2" disabled={!signInReady || submitting}>
+              <Button data-testid="auth-signin-submit" type="submit" size="lg" className="w-full gap-2" disabled={!signInReady || submitting}>
                 {submitting ? "Signing in..." : "Sign in"}
                 {!submitting && <ArrowRight className="h-4 w-4" />}
               </Button>
@@ -634,6 +636,7 @@ export default function Auth({ forcedMode }: AuthProps) {
                 Don&apos;t have an account?{" "}
                 <button
                   type="button"
+                  data-testid="auth-switch-signup"
                   onClick={() => setMode("signup")}
                   className="font-semibold text-primary transition-colors hover:text-primary/85"
                 >
@@ -644,13 +647,14 @@ export default function Auth({ forcedMode }: AuthProps) {
           )}
 
           {currentMode === "signup" && (
-            <form className="space-y-4" onSubmit={handleSignUp}>
+            <form data-testid="auth-signup-form" className="space-y-4" onSubmit={handleSignUp}>
               <div className="space-y-2">
                 <Label htmlFor="signup-full-name">Full names</Label>
                 <div className="relative">
                   <UserRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="signup-full-name"
+                    data-testid="auth-signup-name"
                     autoComplete="name"
                     placeholder="Alvin Mukabane"
                     value={signUpForm.full_name}
@@ -668,6 +672,7 @@ export default function Auth({ forcedMode }: AuthProps) {
                   <Mail className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="signup-email"
+                    data-testid="auth-signup-email"
                     type="email"
                     autoComplete="email"
                     placeholder="you@example.com"
@@ -706,6 +711,7 @@ export default function Auth({ forcedMode }: AuthProps) {
                   <Label htmlFor="signup-phone">Phone number</Label>
                   <Input
                     id="signup-phone"
+                    data-testid="auth-signup-phone"
                     type="tel"
                     autoComplete="tel"
                     placeholder="+254 700 000 000"
@@ -728,6 +734,7 @@ export default function Auth({ forcedMode }: AuthProps) {
                     <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       id="signup-password"
+                      data-testid="auth-signup-password"
                       type="password"
                       autoComplete="new-password"
                       placeholder="Create a strong password"
@@ -744,6 +751,7 @@ export default function Auth({ forcedMode }: AuthProps) {
                   <Label htmlFor="signup-confirm-password">Confirm password</Label>
                   <Input
                     id="signup-confirm-password"
+                    data-testid="auth-signup-confirm-password"
                     type="password"
                     autoComplete="new-password"
                     placeholder="Repeat your password"
@@ -867,7 +875,7 @@ export default function Auth({ forcedMode }: AuthProps) {
                 </label>
               </div>
 
-              <Button type="submit" size="lg" className="w-full gap-2" disabled={!signUpReady || submitting}>
+              <Button data-testid="auth-signup-submit" type="submit" size="lg" className="w-full gap-2" disabled={!signUpReady || submitting}>
                 {submitting ? "Creating account..." : "Sign up"}
                 {!submitting && <ArrowRight className="h-4 w-4" />}
               </Button>
@@ -876,6 +884,7 @@ export default function Auth({ forcedMode }: AuthProps) {
                 Already have an account?{" "}
                 <button
                   type="button"
+                  data-testid="auth-switch-signin"
                   onClick={() => setMode("signin")}
                   className="font-semibold text-primary transition-colors hover:text-primary/85"
                 >
@@ -886,7 +895,7 @@ export default function Auth({ forcedMode }: AuthProps) {
           )}
 
           {currentMode === "verify-email" && (
-            <div className="space-y-5">
+            <div data-testid="auth-verify-email" className="space-y-5">
               <div className="rounded-[1.6rem] border border-primary/15 bg-primary/6 p-5">
                 <div className="flex items-start gap-3">
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/14 text-primary">
@@ -935,6 +944,7 @@ export default function Auth({ forcedMode }: AuthProps) {
                 <div className="mt-4 grid gap-3 md:grid-cols-2">
                   <button
                     type="button"
+                    data-testid="auth-verification-method-magic-link"
                     onClick={() => setVerificationMethod("magic-link")}
                     className={cn(
                       "rounded-2xl border px-4 py-4 text-left transition-colors",
@@ -950,6 +960,7 @@ export default function Auth({ forcedMode }: AuthProps) {
                   </button>
                   <button
                     type="button"
+                    data-testid="auth-verification-method-code"
                     onClick={() => setVerificationMethod("code")}
                     className={cn(
                       "rounded-2xl border px-4 py-4 text-left transition-colors",
@@ -971,6 +982,7 @@ export default function Auth({ forcedMode }: AuthProps) {
                       <Label htmlFor="verification-code">Verification code</Label>
                       <Input
                         id="verification-code"
+                        data-testid="auth-verification-code"
                         inputMode="numeric"
                         autoComplete="one-time-code"
                         placeholder="Enter the code from your email"
@@ -980,6 +992,7 @@ export default function Auth({ forcedMode }: AuthProps) {
                       />
                     </div>
                     <Button
+                      data-testid="auth-verify-code-submit"
                       type="button"
                       className="w-full gap-2"
                       onClick={handleVerifyCode}
@@ -1043,7 +1056,7 @@ export default function Auth({ forcedMode }: AuthProps) {
           )}
 
           {currentMode === "set-password" && (
-            <form className="space-y-4" onSubmit={handleSetPassword}>
+            <form data-testid="auth-set-password-form" className="space-y-4" onSubmit={handleSetPassword}>
               <div className="rounded-2xl border border-primary/15 bg-primary/6 px-4 py-4 text-sm text-muted-foreground">
                 <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/14 text-primary">
@@ -1065,6 +1078,7 @@ export default function Auth({ forcedMode }: AuthProps) {
                   <LockKeyhole className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     id="set-password"
+                    data-testid="auth-set-password"
                     type="password"
                     autoComplete="new-password"
                     placeholder="Create a strong password"
@@ -1084,6 +1098,7 @@ export default function Auth({ forcedMode }: AuthProps) {
                 <Label htmlFor="confirm-set-password">Confirm password</Label>
                 <Input
                   id="confirm-set-password"
+                  data-testid="auth-confirm-set-password"
                   type="password"
                   autoComplete="new-password"
                   placeholder="Repeat your password"
@@ -1146,6 +1161,44 @@ export default function Auth({ forcedMode }: AuthProps) {
               </Button>
             </form>
           )}
+
+          <div className="mt-6 rounded-[1.4rem] border border-border/80 bg-background/75 p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+              Need help?
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <a
+                href={
+                  currentMode === "verify-email"
+                    ? SUPPORT_LINKS.verificationOptions
+                    : currentMode === "set-password"
+                      ? SUPPORT_LINKS.mfaSecurity
+                      : SUPPORT_LINKS.verifyEmail
+                }
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:border-primary/30 hover:text-primary"
+              >
+                {currentMode === "verify-email" ? "Verification guide" : "Account setup guide"}
+              </a>
+              <a
+                href={SUPPORT_LINKS.performance}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:border-primary/30 hover:text-primary"
+              >
+                Troubleshooting
+              </a>
+              <a
+                href={SUPPORT_LINKS.onboardingRecovery}
+                target="_blank"
+                rel="noreferrer"
+                className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-foreground transition-colors hover:border-primary/30 hover:text-primary"
+              >
+                Recovery help
+              </a>
+            </div>
+          </div>
         </motion.div>
       </div>
     </div>

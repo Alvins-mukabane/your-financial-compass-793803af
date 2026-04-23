@@ -168,15 +168,18 @@ function SectionSurface({
   title,
   subtitle,
   icon: Icon,
+  testId,
   children,
 }: {
   title: string;
   subtitle: string;
   icon: LucideIcon;
+  testId?: string;
   children: React.ReactNode;
 }) {
   return (
     <motion.section
+      data-testid={testId}
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       className="space-y-5 rounded-[1.75rem] border border-border bg-card/95 p-5 shadow-[0_22px_55px_-38px_rgba(110,73,75,0.24)] md:p-6"
@@ -436,7 +439,7 @@ export default function Settings() {
   );
 
   return (
-    <div className="mx-auto max-w-[920px] space-y-6 p-4 pb-10 md:p-8">
+    <div data-testid="settings-shell" className="mx-auto max-w-[920px] space-y-6 p-4 pb-10 md:p-8">
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
         <div className="rounded-[1.9rem] border border-border/80 bg-card/95 p-5 shadow-[0_22px_55px_-38px_rgba(110,73,75,0.24)] md:p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -465,6 +468,7 @@ export default function Settings() {
 
       {activeSection === "settings" && (
         <SectionSurface
+          testId="settings-section-settings"
           title="Appearance and reading comfort"
           subtitle="These preferences stay on this device so each user can make eva feel comfortable without affecting account data."
           icon={SlidersHorizontal}
@@ -535,6 +539,7 @@ export default function Settings() {
 
       {activeSection === "profile" && (
         <SectionSurface
+          testId="settings-section-profile"
           title="Personal profile"
           subtitle="These details power onboarding-backed summaries, guidance, and planning defaults."
           icon={User}
@@ -706,6 +711,7 @@ export default function Settings() {
 
       {activeSection === "account" && (
         <SectionSurface
+          testId="settings-section-account"
           title="Account details"
           subtitle="Your sign-in identity, verification, and session controls live here."
           icon={Shield}
@@ -866,6 +872,7 @@ export default function Settings() {
 
       {activeSection === "notifications" && (
         <SectionSurface
+          testId="settings-section-notifications"
           title="Notifications"
           subtitle="Choose the nudges, alerts, and recaps that should reach you."
           icon={Bell}
@@ -973,6 +980,7 @@ export default function Settings() {
 
       {activeSection === "billing" && (
         <SectionSurface
+          testId="settings-section-billing"
           title="Billing and plan"
           subtitle="Phase B stays free-plan first while we harden the public launch experience."
           icon={CreditCard}
@@ -1024,6 +1032,7 @@ export default function Settings() {
 
       {activeSection === "help" && (
         <SectionSurface
+          testId="settings-section-help"
           title="Help and support"
           subtitle="The full help center lives at support.useaima.com. Use these direct links when you need help quickly."
           icon={HelpCircle}
@@ -1080,6 +1089,7 @@ export default function Settings() {
 
       {activeSection === "feedback" && (
         <SectionSurface
+          testId="settings-section-feedback"
           title="Product feedback"
           subtitle="Tell us what is working, what feels rough, or what would make eva more useful for real users."
           icon={MessageCircle}

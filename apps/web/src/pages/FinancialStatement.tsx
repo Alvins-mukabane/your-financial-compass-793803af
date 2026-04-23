@@ -145,7 +145,7 @@ export default function FinancialStatement() {
 
   if (!data && !loading) {
     return (
-      <div className="mx-auto flex min-h-[80vh] max-w-4xl flex-col items-center justify-center gap-6 px-6 text-center">
+      <div data-testid="statement-empty-state" className="mx-auto flex min-h-[80vh] max-w-4xl flex-col items-center justify-center gap-6 px-6 text-center">
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           <div className="w-16 h-16 rounded-2xl bg-primary/12 flex items-center justify-center mx-auto mb-4">
             <Sparkles className="w-8 h-8 text-primary" />
@@ -168,7 +168,7 @@ export default function FinancialStatement() {
             </a>
             .
           </p>
-          <button onClick={generate}
+          <button data-testid="statement-generate-button" onClick={generate}
             className="mt-6 inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors active:scale-[0.97]"
           >
             <Sparkles className="w-4 h-4" /> Generate My Statement
@@ -203,7 +203,7 @@ export default function FinancialStatement() {
   if (!data) return null;
 
   return (
-    <div ref={statementRef} className="p-4 md:p-8 max-w-6xl mx-auto space-y-6 pb-24 md:pb-8">
+    <div data-testid="statement-shell" ref={statementRef} className="p-4 md:p-8 max-w-6xl mx-auto space-y-6 pb-24 md:pb-8">
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
@@ -227,7 +227,7 @@ export default function FinancialStatement() {
             {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
             {exporting ? "Exporting..." : "Export PDF"}
           </button>
-          <button onClick={generate} disabled={loading}
+          <button data-testid="statement-regenerate-button" onClick={generate} disabled={loading}
             className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
           >
             <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} /> Regenerate

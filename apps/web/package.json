@@ -14,6 +14,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "TMPDIR=/tmp TEMP=/tmp TMP=/tmp vitest run",
+    "test:e2e": "TMPDIR=/tmp TEMP=/tmp TMP=/tmp PLAYWRIGHT_BROWSERS_PATH=0 playwright test",
+    "test:e2e:headed": "TMPDIR=/tmp TEMP=/tmp TMP=/tmp PLAYWRIGHT_BROWSERS_PATH=0 playwright test --headed",
     "test:watch": "TMPDIR=/tmp TEMP=/tmp TMP=/tmp vitest"
   },
   "dependencies": {

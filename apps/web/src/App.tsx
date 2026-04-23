@@ -8,6 +8,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import AppErrorDialog from "@/components/AppErrorDialog";
+import BrandLockup from "@/components/BrandLockup";
 import { Button } from "@/components/ui/button";
 import Layout from "@/components/Layout";
 import PwaRuntime from "@/components/PwaRuntime";
@@ -54,10 +55,19 @@ function AppMotionShell({ children }: { children: React.ReactNode }) {
 
 function FullPageLoading() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-6">
-      <div className="space-y-2 text-center">
-        <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
-        <p className="text-sm text-muted-foreground">Loading your workspace...</p>
+    <div
+      data-testid="workspace-loading"
+      className="flex min-h-screen items-center justify-center bg-background px-6"
+    >
+      <div className="w-full max-w-md rounded-[1.9rem] border border-border/80 bg-card/95 p-6 text-center shadow-[0_24px_70px_-42px_rgba(110,73,75,0.26)]">
+        <BrandLockup align="center" size="sm" subtitle="Workspace status" />
+        <div className="mt-6 space-y-3">
+          <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
+          <p className="text-base font-semibold text-foreground">Loading your workspace</p>
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            We’re restoring your latest finance snapshot, navigation state, and recommended next action.
+          </p>
+        </div>
       </div>
     </div>
   );
@@ -71,8 +81,15 @@ function WorkspaceRecovery({ description }: { description: string }) {
   const { refresh, refreshing, signOut, saving } = usePublicUser();
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-6">
+    <div
+      data-testid="workspace-recovery"
+      className="flex min-h-screen items-center justify-center bg-background px-6"
+    >
       <div className="w-full max-w-lg rounded-[1.8rem] border border-border bg-card/95 p-6 shadow-[0_24px_70px_-40px_rgba(110,73,75,0.28)]">
+        <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-background/80 px-3 py-1.5 text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+          <RefreshCw className="h-3.5 w-3.5 text-primary" />
+          Workspace recovery
+        </div>
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
           <AlertTriangle className="h-5 w-5" />
         </div>

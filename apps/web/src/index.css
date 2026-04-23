@@ -134,6 +134,29 @@
     font: inherit;
   }
 
+  a,
+  button,
+  input,
+  textarea,
+  select,
+  [role="button"],
+  [tabindex]:not([tabindex="-1"]) {
+    outline: none;
+  }
+
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  [role="button"]:focus-visible,
+  [tabindex]:not([tabindex="-1"]):focus-visible {
+    box-shadow:
+      0 0 0 3px hsl(var(--background)),
+      0 0 0 5px hsl(var(--ring) / 0.55);
+    border-radius: 1rem;
+  }
+
   h1, h2, h3, h4 {
     letter-spacing: -0.02em;
   }
