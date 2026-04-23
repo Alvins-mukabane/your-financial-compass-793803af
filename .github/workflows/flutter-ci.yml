@@ -15,6 +15,9 @@ on:
       - '.github/workflows/flutter-ci.yml'
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   flutter:
     runs-on: ubuntu-latest
@@ -23,27 +26,46 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Detect mobile workspace
+        id: mobile
+        run: |
+          if [ -f apps/mobile/pubspec.yaml ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Skip missing mobile workspace
+        if: steps.mobile.outputs.present != 'true'
+        run: echo "Skipping flutter-ci because apps/mobile is not present in this repository checkout."
+
       - name: Setup Flutter
+        if: steps.mobile.outputs.present == 'true'
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
 
       - name: Get Flutter Dependencies
+        if: steps.mobile.outputs.present == 'true'
         run: flutter pub get
         working-directory: apps/mobile
 
       - name: Analyze
+        if: steps.mobile.outputs.present == 'true'
         run: flutter analyze
         working-directory: apps/mobile
 
       - name: Format Check
+        if: steps.mobile.outputs.present == 'true'
         run: flutter format --set-exit-if-changed .
         working-directory: apps/mobile
 
       - name: Test
+        if: steps.mobile.outputs.present == 'true'
         run: flutter test
         working-directory: apps/mobile
 
       - name: Build APK
+        if: steps.mobile.outputs.present == 'true'
         run: flutter build apk --release
         working-directory: apps/mobile
