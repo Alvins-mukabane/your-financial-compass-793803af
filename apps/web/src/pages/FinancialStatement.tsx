@@ -142,61 +142,77 @@ export default function FinancialStatement() {
   );
   const adjustedCashflow = adjustedTotalIncome - adjustedTotalExpenses;
   const netWorth = totalAssetValue - totalLiabilityBalance;
+  const statementGate = (
+    <SensitiveActionDialog
+      action="generate_statement"
+      checking={mfaLoading}
+      hasVerifiedMfa={hasVerifiedMfa}
+      open={statementGateOpen}
+      onOpenChange={setStatementGateOpen}
+      onRefresh={refreshMfaStatus}
+    />
+  );
 
   if (!data && !loading) {
     return (
-      <div data-testid="statement-empty-state" className="mx-auto flex min-h-[80vh] max-w-4xl flex-col items-center justify-center gap-6 px-6 text-center">
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-          <div className="w-16 h-16 rounded-2xl bg-primary/12 flex items-center justify-center mx-auto mb-4">
-            <Sparkles className="w-8 h-8 text-primary" />
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight">CASHFLOW Financial Statement</h1>
-          <p className="text-sm text-muted-foreground mt-2 max-w-xl mx-auto">
-            Generate a statement from your onboarding profile right away. Adding assets and
-            liabilities later will make the balance-sheet side more detailed, but they are no
-            longer required to get your first statement.
-          </p>
-          <p className="mt-3 text-xs text-muted-foreground">
-            Need help?{" "}
-            <a
-              href={SUPPORT_LINKS.statementErrors}
-              target="_blank"
-              rel="noreferrer"
-              className="font-semibold text-primary hover:text-primary/85"
+      <>
+        <div data-testid="statement-empty-state" className="mx-auto flex min-h-[80vh] max-w-4xl flex-col items-center justify-center gap-6 px-6 text-center">
+          <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+            <div className="w-16 h-16 rounded-2xl bg-primary/12 flex items-center justify-center mx-auto mb-4">
+              <Sparkles className="w-8 h-8 text-primary" />
+            </div>
+            <h1 className="text-2xl font-bold tracking-tight">CASHFLOW Financial Statement</h1>
+            <p className="text-sm text-muted-foreground mt-2 max-w-xl mx-auto">
+              Generate a statement from your onboarding profile right away. Adding assets and
+              liabilities later will make the balance-sheet side more detailed, but they are no
+              longer required to get your first statement.
+            </p>
+            <p className="mt-3 text-xs text-muted-foreground">
+              Need help?{" "}
+              <a
+                href={SUPPORT_LINKS.statementErrors}
+                target="_blank"
+                rel="noreferrer"
+                className="font-semibold text-primary hover:text-primary/85"
+              >
+                Open the statement guide
+              </a>
+              .
+            </p>
+            <button data-testid="statement-generate-button" onClick={generate}
+              className="mt-6 inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors active:scale-[0.97]"
             >
-              Open the statement guide
-            </a>
-            .
-          </p>
-          <button data-testid="statement-generate-button" onClick={generate}
-            className="mt-6 inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors active:scale-[0.97]"
-          >
-            <Sparkles className="w-4 h-4" /> Generate My Statement
-          </button>
-        </motion.div>
+              <Sparkles className="w-4 h-4" /> Generate My Statement
+            </button>
+          </motion.div>
 
-        <div className="w-full rounded-2xl border border-border bg-card p-5 text-left">
-          <ManualEntryForm
-            onAddAsset={addAsset}
-            onAddLiability={addLiability}
-            onEditAsset={editAsset}
-            onEditLiability={editLiability}
-            onDeleteAsset={deleteAsset}
-            onDeleteLiability={deleteLiability}
-            manualAssets={manualAssets}
-            manualLiabilities={manualLiabilities}
-          />
+          <div className="w-full rounded-2xl border border-border bg-card p-5 text-left">
+            <ManualEntryForm
+              onAddAsset={addAsset}
+              onAddLiability={addLiability}
+              onEditAsset={editAsset}
+              onEditLiability={editLiability}
+              onDeleteAsset={deleteAsset}
+              onDeleteLiability={deleteLiability}
+              manualAssets={manualAssets}
+              manualLiabilities={manualLiabilities}
+            />
+          </div>
         </div>
-      </div>
+        {statementGate}
+      </>
     );
   }
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[80vh] gap-4">
-        <Loader2 className="w-8 h-8 text-primary animate-spin" />
-        <p className="text-sm text-muted-foreground">AI is analyzing your finances...</p>
-      </div>
+      <>
+        <div className="flex flex-col items-center justify-center min-h-[80vh] gap-4">
+          <Loader2 className="w-8 h-8 text-primary animate-spin" />
+          <p className="text-sm text-muted-foreground">AI is analyzing your finances...</p>
+        </div>
+        {statementGate}
+      </>
     );
   }
 
@@ -430,14 +446,7 @@ export default function FinancialStatement() {
         </motion.div>
       )}
 
-      <SensitiveActionDialog
-        action="generate_statement"
-        checking={mfaLoading}
-        hasVerifiedMfa={hasVerifiedMfa}
-        open={statementGateOpen}
-        onOpenChange={setStatementGateOpen}
-        onRefresh={refreshMfaStatus}
-      />
+      {statementGate}
     </div>
   );
 }
