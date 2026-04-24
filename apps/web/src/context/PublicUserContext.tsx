@@ -166,6 +166,7 @@ export function PublicUserProvider({ children }: { children: ReactNode }) {
   const [authLoading, setAuthLoading] = useState(true);
   const [bootstrap, setBootstrap] = useState<BootstrapData>(getEmptyBootstrap());
   const [workspaceLoading, setWorkspaceLoading] = useState(true);
+  const [workspaceResolvedUserId, setWorkspaceResolvedUserId] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [workspaceError, setWorkspaceError] = useState<string | null>(null);
@@ -198,6 +199,7 @@ export function PublicUserProvider({ children }: { children: ReactNode }) {
       bootstrapRef.current = emptyBootstrap;
       setBootstrap(emptyBootstrap);
       setWorkspaceError(null);
+      setWorkspaceResolvedUserId(null);
       return;
     }
 
@@ -253,11 +255,13 @@ export function PublicUserProvider({ children }: { children: ReactNode }) {
       setSession(null);
       setUser(null);
       setWorkspaceError(null);
+      setWorkspaceResolvedUserId(null);
       setAuthLoading(false);
       return;
     }
 
     setAuthLoading(true);
+    setWorkspaceResolvedUserId(null);
 
     try {
       const trusted = await resolveTrustedSession(nextSession, {
@@ -297,6 +301,7 @@ export function PublicUserProvider({ children }: { children: ReactNode }) {
         resetWorkspace(null);
         setWorkspaceLoading(false);
         setWorkspaceError(null);
+        setWorkspaceResolvedUserId(null);
         return;
       }
 
@@ -304,8 +309,10 @@ export function PublicUserProvider({ children }: { children: ReactNode }) {
       try {
         const data = await fetchBootstrap({ legacyPublicUserId });
         applyBootstrap(data);
+        setWorkspaceResolvedUserId(activeUser.id);
       } catch (error) {
         handleRefreshFailure(activeUser, error);
+        setWorkspaceResolvedUserId(activeUser.id);
       } finally {
         setWorkspaceLoading(false);
       }
@@ -357,11 +364,13 @@ export function PublicUserProvider({ children }: { children: ReactNode }) {
     try {
       const data = await fetchBootstrap({ legacyPublicUserId });
       applyBootstrap(data);
+      setWorkspaceResolvedUserId(user.id);
     } catch (error) {
-        handleRefreshFailure(
-          user ? { id: user.id, email: user.email ?? null } : null,
-          error,
-        );
+      handleRefreshFailure(
+        user ? { id: user.id, email: user.email ?? null } : null,
+        error,
+      );
+      setWorkspaceResolvedUserId(user.id);
     } finally {
       setRefreshing(false);
     }
@@ -562,10 +571,14 @@ export function PublicUserProvider({ children }: { children: ReactNode }) {
 
     clearCachedBootstrap();
     setWorkspaceError(null);
+    setWorkspaceResolvedUserId(null);
     setBootstrap(getEmptyBootstrap());
   }, []);
 
-  const loading = authLoading || workspaceLoading;
+  const loading =
+    authLoading ||
+    workspaceLoading ||
+    (Boolean(user) && workspaceResolvedUserId !== user.id);
 
   const value = useMemo<PublicUserContextValue>(
     () => ({
