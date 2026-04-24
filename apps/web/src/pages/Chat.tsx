@@ -49,13 +49,26 @@ export default function Chat() {
 
   const parseAffordabilityPrompt = useCallback((text: string) => {
     const normalized = text.trim().toLowerCase();
-    if (!/\bafford\b/.test(normalized)) {
+    const isAffordabilityQuestion =
+      /\bafford\b/.test(normalized) || /\b(can i buy|should i buy|buy this)\b/i.test(text);
+    if (!isAffordabilityQuestion) {
       return null;
     }
 
+    const cadence = /\b(each month|monthly|per month|every month)\b/i.test(text)
+      ? "monthly"
+      : "one_time";
+    const itemMatch =
+      text.match(/\bafford\s+(?:an?|the)?\s*([^?.!,]+?)(?:\s+based on|\s+with|\s+using|\?|$)/i) ??
+      text.match(/\bbuy\s+(?:an?|the)?\s*([^?.!,]+?)(?:\s+based on|\s+with|\s+using|\?|$)/i);
+    const itemLabel = itemMatch?.[1]?.replace(/\b(my finances|my budget|my spending)\b/gi, "").trim() ?? null;
     const amountMatch = text.match(/\$?\s?(\d+(?:\.\d{1,2})?)/);
     if (!amountMatch) {
-      return null;
+      return {
+        requiresClarification: true,
+        cadence,
+        itemLabel,
+      } as const;
     }
 
     const amount = Number(amountMatch[1]);
@@ -63,15 +76,13 @@ export default function Chat() {
       return null;
     }
 
-    const cadence = /\b(each month|monthly|per month|every month)\b/i.test(text)
-      ? "monthly"
-      : "one_time";
     const categoryMatch = text.match(/\bfor\s+([a-z][a-z\s]{2,40})/i);
 
     return {
+      requiresClarification: false,
       amount,
       cadence,
-      category: categoryMatch?.[1]?.trim() ?? null,
+      category: categoryMatch?.[1]?.trim() ?? itemLabel,
     } as const;
   }, []);
 
@@ -87,6 +98,20 @@ export default function Chat() {
     setIsLoading(true);
 
     const affordabilityRequest = parseAffordabilityPrompt(trimmed);
+    if (affordabilityRequest?.requiresClarification) {
+      const subject = affordabilityRequest.itemLabel ? `the ${affordabilityRequest.itemLabel}` : "it";
+      const assistantMsg: Msg = {
+        role: "assistant",
+        content:
+          `I can check whether you can afford ${subject} based on your finances. ` +
+          `Send me the price and whether it is a one-time purchase or a monthly payment, and I will give you a concise affordability check.`,
+      };
+      setMessages((prev) => [...prev, assistantMsg]);
+      addEntry({ type: "msg", msg: assistantMsg });
+      setIsLoading(false);
+      return;
+    }
+
     if (affordabilityRequest) {
       try {
         const result = await checkAffordability(affordabilityRequest);
@@ -94,6 +119,7 @@ export default function Chat() {
           `## Affordability check\n` +
           `- Amount: $${result.amount.toFixed(2)}${result.category ? ` for ${result.category}` : ""}\n` +
           `- Status: ${result.status.replace(/_/g, " ")}\n` +
+          `- Projected free cash after this: $${result.projected_free_cash.toFixed(2)}\n` +
           `- Suggested limit: $${result.suggested_limit.toFixed(2)}\n\n` +
           `${result.summary}`;
         const assistantMsg: Msg = { role: "assistant", content: assistantMessage };

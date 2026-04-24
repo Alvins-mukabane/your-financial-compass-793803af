@@ -16,7 +16,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import BrandLockup from "@/components/BrandLockup";
 import UserProfileMenu from "@/components/UserProfileMenu";
 import {
   Sheet,
@@ -66,6 +65,37 @@ const navigationSections: NavSection[] = [
 ];
 
 const desktopMenuItems = navigationSections.flatMap((section) => section.items);
+
+function AppLogoButton({
+  onClick,
+  className,
+}: {
+  onClick: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      data-testid="app-logo-button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-border/80 bg-card/92 p-2 shadow-[0_14px_30px_-24px_rgba(110,73,75,0.24)] transition-colors hover:bg-secondary/70",
+        className,
+      )}
+      aria-label="Go to dashboard"
+    >
+      <img
+        src="/apple-touch-icon.png"
+        alt="eva app logo"
+        width={48}
+        height={48}
+        loading="eager"
+        decoding="async"
+        className="h-8 w-8 rounded-xl object-cover"
+      />
+    </button>
+  );
+}
 
 function NavigationButton({
   item,
@@ -123,20 +153,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <aside className="window-controls-safe-sidebar fixed hidden w-[236px] flex-col gap-4 border-r border-border/90 bg-[hsl(var(--sidebar-background)/0.94)] p-4 pt-5 shadow-[18px_0_45px_-38px_rgba(110,73,75,0.28)] backdrop-blur-xl md:flex">
-        <div className="rounded-[1.6rem] border border-border/80 bg-card/92 p-4 shadow-[0_18px_40px_-34px_rgba(110,73,75,0.18)]">
-          <BrandLockup
-            size="sm"
-            subtitleClassName="text-[0.58rem] tracking-[0.2em]"
-            titleClassName="text-[1.08rem]"
-            iconClassName="h-11 w-11 rounded-[1rem]"
-          />
-          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
-            Keep your finances grounded in one canonical workspace.
-          </p>
+      <aside className="window-controls-safe-sidebar fixed inset-y-0 left-0 z-30 hidden h-screen w-[236px] flex-col gap-4 border-r border-border/90 bg-[hsl(var(--sidebar-background)/0.94)] p-4 pt-5 shadow-[18px_0_45px_-38px_rgba(110,73,75,0.28)] backdrop-blur-xl md:flex">
+        <div className="flex items-center justify-between px-1">
+          <AppLogoButton onClick={() => navigate("/dashboard")} />
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
           <nav data-testid="desktop-navigation" className="space-y-3 pb-2">
             <div className="space-y-1 rounded-[1.5rem] border border-border/80 bg-card/90 p-2 shadow-[0_18px_40px_-34px_rgba(110,73,75,0.18)]">
               {desktopMenuItems.map((item) => (
@@ -151,6 +173,10 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           </nav>
         </div>
       </aside>
+
+      <div className="fixed right-4 top-4 z-40 hidden md:flex">
+        <UserProfileMenu compact />
+      </div>
 
       <header className="fixed inset-x-0 top-0 z-40 border-b border-border/90 bg-[hsl(var(--background)/0.94)] shadow-[0_16px_32px_-28px_rgba(110,73,75,0.25)] backdrop-blur-xl md:hidden">
         <div data-testid="mobile-header" className="flex h-16 items-center justify-between gap-3 px-4">
@@ -172,12 +198,20 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               className="flex h-dvh w-[92vw] max-w-[22rem] flex-col gap-0 overflow-hidden border-r border-border/80 bg-[hsl(var(--background)/0.98)] p-0"
             >
               <SheetHeader className="border-b border-border/80 px-5 pb-4 pt-6 text-left">
-                <SheetTitle className="text-sm font-semibold text-foreground">
-                  Navigation
-                </SheetTitle>
-                <SheetDescription className="mt-1 text-sm text-muted-foreground">
-                  {activeSectionLabel} is active. All sections stay available below.
-                </SheetDescription>
+                <div className="flex items-center gap-3">
+                  <AppLogoButton
+                    onClick={() => navigate("/dashboard")}
+                    className="h-10 w-10 rounded-xl p-1.5 shadow-none"
+                  />
+                  <div>
+                    <SheetTitle className="text-sm font-semibold text-foreground">
+                      Navigation
+                    </SheetTitle>
+                    <SheetDescription className="mt-1 text-sm text-muted-foreground">
+                      {activeSectionLabel} is active. All sections stay available below.
+                    </SheetDescription>
+                  </div>
+                </div>
               </SheetHeader>
 
               <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4 pb-8">
@@ -211,7 +245,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <main data-testid="app-shell-main" className="window-controls-safe-main flex-1 px-0 pb-8 pt-16 md:ml-[236px] md:pt-0">
+      <main data-testid="app-shell-main" className="window-controls-safe-main flex-1 px-0 pb-8 pt-16 md:ml-[236px] md:pr-20 md:pt-0">
         {children}
       </main>
     </div>
