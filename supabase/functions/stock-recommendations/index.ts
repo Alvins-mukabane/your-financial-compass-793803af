@@ -39,6 +39,11 @@ type StructuredRecommendationResponse = {
   motley_fool_focus?: string;
 };
 
+const SYNTHETIC_TICKER_RE = /^(PICK|IDEA)\d+$/i;
+const SYNTHETIC_COMPANY_RE = /^(Pick|Market pick|Live market idea)\b/i;
+const SYNTHETIC_REASON_RE =
+  /eva found this idea in current market research|eva could not fully structure this live pick/i;
+
 const DEFAULT_MARKET_PULSE =
   "eva could not complete a fully structured live stock screen just now, so review the latest market conditions before acting on any idea.";
 
@@ -142,7 +147,21 @@ function normalizeRecommendations(items: RecommendationPayload[] = []) {
             : undefined,
       };
     })
-    .filter((item) => Boolean(item.company));
+    .filter((item) => {
+      if (!item.company || !item.ticker) {
+        return false;
+      }
+
+      if (SYNTHETIC_TICKER_RE.test(item.ticker) || SYNTHETIC_COMPANY_RE.test(item.company)) {
+        return false;
+      }
+
+      if (item.source === "Market Research" && SYNTHETIC_REASON_RE.test(item.reason)) {
+        return false;
+      }
+
+      return true;
+    });
 }
 
 async function fetchTavilyData(today: string) {
@@ -317,32 +336,11 @@ function buildFallbackResponse(
   today: string,
   searchData: TavilyResponse,
 ) {
-  const results = Array.isArray(searchData.results) ? searchData.results : [];
-
-  const fallbackRecommendations = Array.from({ length: 4 }, (_, index) => {
-    const result = results[index];
-    return {
-      ticker: `IDEA${index + 1}`,
-      company: result?.title?.slice(0, 120) || `Live market idea ${index + 1}`,
-      recommendation: "Hold",
-      current_price: "Live price unavailable",
-      target_price: "Review manually",
-      upside: "Research live upside",
-      reason:
-        result?.content?.slice(0, 220) ||
-        "eva could not fully structure this live pick just now, so review current research before acting.",
-      source: inferSourceName(result?.url ?? ""),
-      risk_level: "Medium",
-      sector: "General Market",
-      newsletter_note: `Grounded from live search context on ${today}.`,
-    };
-  });
-
   return {
-    recommendations: fallbackRecommendations,
+    recommendations: [],
     market_pulse: searchData.answer?.trim() || DEFAULT_MARKET_PULSE,
     motley_fool_focus:
-      "Review the current live research sources below before making any trading decision.",
+      `eva reviewed live market research on ${today}, but it is not grounded enough to publish confident picks right now.`,
   };
 }
 

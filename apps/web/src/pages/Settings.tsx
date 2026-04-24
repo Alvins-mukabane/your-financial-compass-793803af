@@ -232,6 +232,7 @@ export default function Settings() {
   const {
     assuranceLevel: mfaAssuranceLevel,
     error: mfaError,
+    factors: mfaFactors,
     hasVerifiedMfa,
     loading: mfaStatusLoading,
     refresh: refreshMfaStatus,
@@ -320,13 +321,52 @@ export default function Settings() {
   const handleStartMfaSetup = async () => {
     setMfaBusy(true);
     try {
-      const { data, error } = await supabase.auth.mfa.enroll({
-        factorType: "totp",
-        friendlyName: "eva Authenticator",
-      });
+      const startEnrollment = async () => {
+        const { data, error } = await supabase.auth.mfa.enroll({
+          factorType: "totp",
+          friendlyName: "eva Authenticator",
+        });
 
-      if (error) {
-        throw error;
+        if (error) {
+          throw error;
+        }
+
+        return data;
+      };
+
+      let data;
+
+      try {
+        data = await startEnrollment();
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "";
+        const hasStaleTotpFactor = /friendly name .* already exists/i.test(message);
+
+        if (!hasStaleTotpFactor) {
+          throw error;
+        }
+
+        const staleTotpFactors = mfaFactors.filter(
+          (factor) => factor.factor_type === "totp" && factor.status !== "verified",
+        );
+
+        if (!staleTotpFactors.length) {
+          throw error;
+        }
+
+        for (const factor of staleTotpFactors) {
+          const { error: unenrollError } = await supabase.auth.mfa.unenroll({
+            factorId: factor.id,
+          });
+
+          if (unenrollError) {
+            throw unenrollError;
+          }
+        }
+
+        await refreshMfaStatus();
+        data = await startEnrollment();
+        toast.message("We cleared an unfinished MFA setup and restarted it for you.");
       }
 
       setPendingTotpEnrollment({

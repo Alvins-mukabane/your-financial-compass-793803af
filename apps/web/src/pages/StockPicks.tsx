@@ -20,6 +20,11 @@ interface StockRec {
   newsletter_note?: string;
 }
 
+const SYNTHETIC_TICKER_RE = /^(PICK|IDEA)\d+$/i;
+const SYNTHETIC_COMPANY_RE = /^(Pick|Market pick|Live market idea)\b/i;
+const SYNTHETIC_REASON_RE =
+  /eva pulled this idea from live market research sources|eva found this idea in current market research/i;
+
 type RawStockRec = Partial<StockRec> & {
   stock?: string;
   price?: string;
@@ -38,6 +43,22 @@ const recColors: Record<string, string> = {
   Buy: "text-[hsl(var(--chart-2))] bg-[hsl(var(--chart-2)/0.10)] border-[hsl(var(--chart-2)/0.18)]",
   Hold: "text-muted-foreground bg-secondary border-border",
 };
+
+function isGroundedStockPick(rec: StockRec) {
+  if (!rec.company.trim() || !rec.ticker.trim()) {
+    return false;
+  }
+
+  if (SYNTHETIC_TICKER_RE.test(rec.ticker) || SYNTHETIC_COMPANY_RE.test(rec.company)) {
+    return false;
+  }
+
+  if (rec.source === "Market Research" && SYNTHETIC_REASON_RE.test(rec.reason)) {
+    return false;
+  }
+
+  return true;
+}
 
 export default function StockPicks() {
   const [recs, setRecs] = useState<StockRec[]>([]);
@@ -76,7 +97,7 @@ export default function StockPicks() {
           newsletter_note: item.newsletter_note || item.note,
         };
       })
-      .filter((item) => Boolean(item.company));
+      .filter(isGroundedStockPick);
 
   const fetchRecs = async () => {
     if (!hasSupabaseConfig) {
