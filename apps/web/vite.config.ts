@@ -201,7 +201,8 @@ export default defineConfig(({ mode }) => ({
         ],
       } as any,
       workbox: {
-        navigateFallbackDenylist: [/^\/~oauth/],
+        // Let raw machine-readable files bypass the SPA shell even when a service worker controls the page.
+        navigateFallbackDenylist: [/^\/~oauth/, /^\/sitemap\.xml$/i, /^\/robots\.txt$/i, /^\/.*\.(?:xml|txt)$/i],
         globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,json,woff,woff2,webmanifest}"],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         runtimeCaching: [
