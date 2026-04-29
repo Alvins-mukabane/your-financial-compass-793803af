@@ -7,8 +7,11 @@ import type {
   BudgetLimit,
   DraftTransaction,
   FinancialEntry,
-  ImportJob,
   OnboardingPayload,
+  ReceiptForwardingDetails,
+  SensitiveActionCodeRequest,
+  SensitiveActionId,
+  SensitiveActionVerificationResult,
   Subscription,
   UserGoal,
   UserProfile,
@@ -151,16 +154,42 @@ export async function reviewDraftTransaction(input: {
   draftTransactionId: string;
   decision: "approve" | "reject" | "edit";
   updates?: Partial<DraftTransaction>;
+  securityVerificationId?: string | null;
 }) {
   return invokeWorkspace<BootstrapData>("review_draft_transaction", {
     draft_transaction_id: input.draftTransactionId,
     decision: input.decision,
     updates: input.updates ?? null,
+    security_verification_id: input.securityVerificationId ?? null,
   });
 }
 
 export async function markNotificationRead(notificationId: string) {
   return invokeWorkspace<BootstrapData>("mark_notification_read", {
     notification_id: notificationId,
+  });
+}
+
+export async function requestSensitiveActionCode(action: SensitiveActionId) {
+  return invokeWorkspace<SensitiveActionCodeRequest>("request_sensitive_action_code", {
+    sensitive_action: action,
+  });
+}
+
+export async function verifySensitiveActionCode(input: {
+  action: SensitiveActionId;
+  verificationId: string;
+  code: string;
+}) {
+  return invokeWorkspace<SensitiveActionVerificationResult>("verify_sensitive_action_code", {
+    sensitive_action: input.action,
+    verification_id: input.verificationId,
+    code: input.code,
+  });
+}
+
+export async function getReceiptForwardingAddress(securityVerificationId: string) {
+  return invokeWorkspace<ReceiptForwardingDetails>("get_receipt_forwarding_address", {
+    security_verification_id: securityVerificationId,
   });
 }

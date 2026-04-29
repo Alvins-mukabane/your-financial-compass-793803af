@@ -39,6 +39,7 @@ export const SUPPORT_LINKS = {
   insights: buildSupportArticleUrl("insights"),
   profile: buildSupportArticleUrl("change-profile"),
   mfaSecurity: buildSupportArticleUrl("mfa-security"),
+  securityVerification: buildSupportArticleUrl("mfa-security"),
   offline: buildSupportArticleUrl("offline"),
   performance: buildSupportArticleUrl("performance"),
 } as const;

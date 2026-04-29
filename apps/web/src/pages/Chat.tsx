@@ -246,10 +246,10 @@ export default function Chat() {
               <Sparkles className="w-8 h-8 text-primary" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-balance">AI Financial Advisor</h1>
+              <h1 className="text-2xl font-bold text-balance">EVA financial chat</h1>
               <p className="text-sm text-muted-foreground mt-2 max-w-md leading-relaxed">
-                Tell me what you spent today. I will track it, build your real spending history,
-                and give advice based on the data you have actually logged.
+                Tell me what you spent, what feels tight, or what you want to afford next. I’ll
+                keep the answer grounded in your real finances and keep it brief enough to act on.
               </p>
             </div>
 

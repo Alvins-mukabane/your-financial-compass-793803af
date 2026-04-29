@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import {
   buildBootstrap,
+  consumeSensitiveActionVerification,
   corsHeaders,
   requireAuthenticatedUser,
 } from "../_shared/financeCore.ts";
@@ -15,6 +16,7 @@ serve(async (req) => {
   }
 
   try {
+    const body = await req.json().catch(() => ({}));
     const user = await requireAuthenticatedUser(req);
     const bootstrap = await buildBootstrap(user.id, user.email ?? null);
 
@@ -30,6 +32,12 @@ serve(async (req) => {
       );
     }
 
+    await consumeSensitiveActionVerification(
+      user.id,
+      "generate_statement",
+      body.security_verification_id,
+    );
+
     const fallbackStatement = buildFallbackStatement(bootstrap);
     const statement = await generateStatementWithAi(bootstrap, fallbackStatement);
 
@@ -38,12 +46,15 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("generate-statement error:", error);
+    const message =
+      error instanceof Error ? error.message : "Unknown error";
+    const status = /security verification|required|expired|code/i.test(message) ? 400 : 500;
     return new Response(
       JSON.stringify({
-        error: error instanceof Error ? error.message : "Unknown error",
+        error: message,
       }),
       {
-        status: 500,
+        status,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       },
     );

@@ -1,51 +1,42 @@
-import { buildSettingsHref } from "@/lib/appPreferences";
 import { SUPPORT_LINKS } from "@/lib/supportLinks";
-
-export type SensitiveActionId =
-  | "generate_statement"
-  | "review_draft_transaction"
-  | "receipt_forwarding"
-  | "security_settings";
+import type { SensitiveActionId } from "@/lib/evaContracts";
 
 type SensitiveActionMeta = {
   title: string;
   description: string;
-  settingsHref: string;
   helpHref: string;
-  buttonLabel: string;
+  confirmLabel: string;
 };
 
 export const SENSITIVE_ACTIONS: Record<SensitiveActionId, SensitiveActionMeta> = {
   generate_statement: {
-    title: "Protect statement generation with MFA",
+    title: "Verify by email to generate your statement",
     description:
-      "Financial statements summarize sensitive income, assets, liabilities, and spending data. Enable MFA before generating one so eva can step this action up safely.",
-    settingsHref: buildSettingsHref("account"),
-    helpHref: SUPPORT_LINKS.mfaSecurity,
-    buttonLabel: "Open security settings",
+      "Financial statements summarize sensitive income, assets, liabilities, and spending data. EVA will send a short security code to your verified email before generating one.",
+    helpHref: SUPPORT_LINKS.securityVerification,
+    confirmLabel: "Verify and continue",
   },
   review_draft_transaction: {
-    title: "Use MFA before approving imported transactions",
+    title: "Verify by email before approving imported transactions",
     description:
-      "Approving or editing a draft transaction changes your canonical spending history. Enable MFA first so imports and reviews stay safer.",
-    settingsHref: buildSettingsHref("account"),
-    helpHref: SUPPORT_LINKS.mfaSecurity,
-    buttonLabel: "Enable MFA first",
+      "Approving or editing a draft transaction changes your canonical spending history. We will send a one-time security code to your verified email before continuing.",
+    helpHref: SUPPORT_LINKS.securityVerification,
+    confirmLabel: "Verify and approve",
   },
   receipt_forwarding: {
-    title: "Protect receipt forwarding with MFA",
+    title: "Verify by email to reveal your receipt inbox",
     description:
-      "Receipt forwarding exposes a personal finance-ingestion address. Enable MFA before using or copying it so only you can turn forwarded receipts into draft transactions.",
-    settingsHref: buildSettingsHref("account"),
-    helpHref: SUPPORT_LINKS.mfaSecurity,
-    buttonLabel: "Secure my account",
+      "Receipt forwarding exposes a personal EVA inbox that turns forwarded receipts into draft transactions. We will email you a one-time code before revealing or copying it.",
+    helpHref: SUPPORT_LINKS.securityVerification,
+    confirmLabel: "Verify and reveal",
   },
   security_settings: {
-    title: "Confirm your account security with MFA",
+    title: "Verify this security change by email",
     description:
-      "Security-sensitive account changes should be completed with an extra factor enabled so your eva workspace stays protected.",
-    settingsHref: buildSettingsHref("account"),
-    helpHref: SUPPORT_LINKS.mfaSecurity,
-    buttonLabel: "Go to account security",
+      "Security-sensitive account changes require a short one-time code sent to your verified email so EVA can confirm it is really you.",
+    helpHref: SUPPORT_LINKS.securityVerification,
+    confirmLabel: "Verify and continue",
   },
 };
+
+export type { SensitiveActionId };

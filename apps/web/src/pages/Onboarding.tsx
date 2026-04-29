@@ -3,16 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   AlertTriangle,
-  ArrowLeft,
   ArrowRight,
-  BarChart3,
   Brain,
-  CreditCard,
-  PiggyBank,
   Plus,
   Sparkles,
   Trash2,
-  TrendingDown,
   Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -28,324 +23,36 @@ import ManualEntryForm, {
   type LiabilityEntry,
 } from "@/components/financial/ManualEntryForm";
 import {
+  CHAT_STARTER_STORAGE_KEY,
+  goalOptions,
+  guidanceOptions,
+  intentOptions,
+  moneyStyleOptions,
+  onboardingSteps,
+  problemOptions,
+  subscriptionAwarenessOptions,
+  type BiggestProblem,
+  type GoalFocus,
+  type GuidanceStyle,
+  type IntentFocus,
+  type MoneyStyle,
+  type SubscriptionAwareness,
+} from "@/features/onboarding/onboardingConfig";
+import {
+  addMonths,
+  clearOnboardingDraft,
+  readOnboardingDraft,
+  writeOnboardingDraft,
+  type OnboardingDraft,
+} from "@/features/onboarding/onboardingDraft";
+import { SelectionCard, StepBackButton } from "@/features/onboarding/OnboardingControls";
+import {
   BUDGET_LIMIT_CATEGORIES,
   SUBSCRIPTION_CATEGORIES,
   USER_TYPES,
   formatCurrencyDetailed,
 } from "@/lib/finance";
 import { SUPPORT_LINKS } from "@/lib/supportLinks";
-
-type StepId =
-  | "welcome"
-  | "intent"
-  | "problem"
-  | "style"
-  | "goal"
-  | "setup"
-  | "action";
-
-type IntentFocus = "save_more" | "stop_overspending" | "understand_spending" | "manage_subscriptions";
-type BiggestProblem = "money_disappears" | "category_overspend" | "too_many_subscriptions" | "inconsistent";
-type MoneyStyle = "spend_without_tracking" | "tries_to_track" | "somewhat_disciplined" | "optimizer";
-type GuidanceStyle = "strict" | "balanced" | "passive";
-type GoalFocus = "save_money" | "reduce_expenses" | "control_subscriptions" | "build_habits";
-type SubscriptionAwareness = "yes" | "not_sure" | "no";
-
-const steps: Array<{ id: StepId; label: string }> = [
-  { id: "welcome", label: "Welcome" },
-  { id: "intent", label: "Intent" },
-  { id: "problem", label: "Problem" },
-  { id: "style", label: "Style" },
-  { id: "goal", label: "Goal" },
-  { id: "setup", label: "Setup" },
-  { id: "action", label: "First Action" },
-];
-
-const intentOptions: Array<{
-  value: IntentFocus;
-  title: string;
-  description: string;
-  icon: typeof PiggyBank;
-}> = [
-  {
-    value: "save_more",
-    title: "Save more money",
-    description: "Build more breathing room each month.",
-    icon: PiggyBank,
-  },
-  {
-    value: "stop_overspending",
-    title: "Stop overspending",
-    description: "Catch the habits that quietly drain cash.",
-    icon: TrendingDown,
-  },
-  {
-    value: "understand_spending",
-    title: "Understand my spending",
-    description: "See where your money actually goes.",
-    icon: BarChart3,
-  },
-  {
-    value: "manage_subscriptions",
-    title: "Manage subscriptions",
-    description: "Find the recurring costs worth cutting.",
-    icon: CreditCard,
-  },
-];
-
-const problemOptions: Array<{
-  value: BiggestProblem;
-  title: string;
-  description: string;
-}> = [
-  {
-    value: "money_disappears",
-    title: "I do not know where my money goes",
-    description: "You want a clearer picture of daily spending.",
-  },
-  {
-    value: "category_overspend",
-    title: "I spend too much on certain things",
-    description: "You need help spotting the categories that drift.",
-  },
-  {
-    value: "too_many_subscriptions",
-    title: "I have too many subscriptions",
-    description: "Recurring costs feel harder to control than they should.",
-  },
-  {
-    value: "inconsistent",
-    title: "I cannot stay consistent",
-    description: "You start tracking, then momentum fades.",
-  },
-];
-
-const moneyStyleOptions: Array<{
-  value: MoneyStyle;
-  title: string;
-  description: string;
-}> = [
-  {
-    value: "spend_without_tracking",
-    title: "I spend without tracking",
-    description: "You need fast guardrails and visibility.",
-  },
-  {
-    value: "tries_to_track",
-    title: "I try to track but fail",
-    description: "You need a lighter, more consistent system.",
-  },
-  {
-    value: "somewhat_disciplined",
-    title: "I am somewhat disciplined",
-    description: "You want better insights, not just reminders.",
-  },
-  {
-    value: "optimizer",
-    title: "I want to optimize",
-    description: "You are ready for sharper recommendations and tradeoffs.",
-  },
-];
-
-const guidanceOptions: Array<{
-  value: GuidanceStyle;
-  title: string;
-  description: string;
-}> = [
-  {
-    value: "strict",
-    title: "Strict",
-    description: "Push me when I need to improve.",
-  },
-  {
-    value: "balanced",
-    title: "Balanced",
-    description: "Suggest clearly, but do not overwhelm me.",
-  },
-  {
-    value: "passive",
-    title: "Passive",
-    description: "Show the data and let me decide.",
-  },
-];
-
-const goalOptions: Array<{
-  value: GoalFocus;
-  title: string;
-  description: string;
-}> = [
-  {
-    value: "save_money",
-    title: "Save money",
-    description: "Create more cushion and control.",
-  },
-  {
-    value: "reduce_expenses",
-    title: "Reduce expenses",
-    description: "Lower outflows that do not add enough value.",
-  },
-  {
-    value: "control_subscriptions",
-    title: "Control subscriptions",
-    description: "Get recurring costs under control.",
-  },
-  {
-    value: "build_habits",
-    title: "Build better habits",
-    description: "Improve consistency and decision quality.",
-  },
-];
-
-const subscriptionAwarenessOptions: Array<{
-  value: SubscriptionAwareness;
-  title: string;
-}> = [
-  { value: "yes", title: "Yes" },
-  { value: "not_sure", title: "Not sure" },
-  { value: "no", title: "No" },
-];
-
-const CHAT_STARTER_STORAGE_KEY = "eva-chat-starter";
-const ONBOARDING_DRAFT_STORAGE_KEY = "eva-onboarding-draft";
-
-type OnboardingDraft = {
-  stepIndex: number;
-  profile: {
-    first_name: string;
-    last_name: string;
-    country: string;
-    phone_number: string;
-    user_type: "personal" | "business";
-    updates_opt_in: boolean;
-    password_setup_completed: boolean;
-    cash_balance: string;
-    monthly_income: string;
-    monthly_fixed_expenses: string;
-  };
-  intentFocus: IntentFocus | null;
-  biggestProblem: BiggestProblem | null;
-  moneyStyle: MoneyStyle | null;
-  guidanceStyle: GuidanceStyle;
-  goalFocus: GoalFocus | null;
-  targetMonthlySavings: string;
-  subscriptionAwareness: SubscriptionAwareness;
-  budgetForm: {
-    category: string;
-    monthly_limit: string;
-  };
-  budgetLimits: Array<{ id: string; category: string; monthly_limit: string }>;
-  subscriptionForm: {
-    name: string;
-    price: string;
-    billing_cycle: "monthly" | "yearly";
-    category: string;
-  };
-  subscriptions: Array<{
-    id: string;
-    name: string;
-    price: string;
-    billing_cycle: "monthly" | "yearly";
-    category: string;
-  }>;
-  manualAssets: AssetEntry[];
-  manualLiabilities: LiabilityEntry[];
-  showBalanceSheet: boolean;
-  showSubscriptions: boolean;
-  showBudgets: boolean;
-  firstActionPrompt: string;
-};
-
-function addMonths(date: Date, months: number) {
-  const next = new Date(date);
-  next.setMonth(next.getMonth() + months);
-  return next;
-}
-
-function getOnboardingDraftKey(userId: string) {
-  return `${ONBOARDING_DRAFT_STORAGE_KEY}:${userId}`;
-}
-
-function readOnboardingDraft(userId: string) {
-  if (typeof window === "undefined" || !userId) {
-    return null;
-  }
-
-  try {
-    const raw = window.localStorage.getItem(getOnboardingDraftKey(userId));
-    return raw ? (JSON.parse(raw) as OnboardingDraft) : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeOnboardingDraft(userId: string, draft: OnboardingDraft) {
-  if (typeof window === "undefined" || !userId) {
-    return;
-  }
-
-  window.localStorage.setItem(getOnboardingDraftKey(userId), JSON.stringify(draft));
-}
-
-function clearOnboardingDraft(userId: string) {
-  if (typeof window === "undefined" || !userId) {
-    return;
-  }
-
-  window.localStorage.removeItem(getOnboardingDraftKey(userId));
-}
-
-function SelectionCard({
-  active,
-  title,
-  description,
-  icon: Icon,
-  onClick,
-}: {
-  active: boolean;
-  title: string;
-  description: string;
-  icon?: typeof PiggyBank;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-[1.35rem] border p-4 text-left transition-all duration-200 ${
-        active
-          ? "border-primary/35 bg-primary/8 shadow-[0_18px_48px_-36px_rgba(110,73,75,0.3)]"
-          : "border-border bg-card hover:-translate-y-0.5 hover:border-primary/20"
-      }`}
-    >
-      <div className="flex items-start gap-3">
-        {Icon ? (
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/12 text-primary">
-            <Icon className="h-5 w-5" />
-          </div>
-        ) : null}
-        <div>
-          <p className="text-sm font-semibold text-foreground">{title}</p>
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p>
-        </div>
-      </div>
-    </button>
-  );
-}
-
-function StepBackButton({
-  onClick,
-  label = "Back",
-}: {
-  onClick: () => void;
-  label?: string;
-}) {
-  return (
-    <Button type="button" variant="ghost" className="gap-2 px-2" onClick={onClick}>
-      <ArrowLeft className="h-4 w-4" />
-      {label}
-    </Button>
-  );
-}
 
 export default function Onboarding() {
   const navigate = useNavigate();
@@ -406,7 +113,7 @@ export default function Onboarding() {
   const [showBudgets, setShowBudgets] = useState(false);
   const [firstActionPrompt, setFirstActionPrompt] = useState("");
 
-  const currentStep = steps[stepIndex];
+  const currentStep = onboardingSteps[stepIndex];
   const goBack = () => {
     if (stepIndex === 0) {
       navigate("/");
@@ -455,7 +162,7 @@ export default function Onboarding() {
 
     const draft = readOnboardingDraft(user.id);
     if (draft) {
-      setStepIndex(Math.min(Math.max(draft.stepIndex, 0), steps.length - 1));
+      setStepIndex(Math.min(Math.max(draft.stepIndex, 0), onboardingSteps.length - 1));
       setProfile(draft.profile);
       setIntentFocus(draft.intentFocus);
       setBiggestProblem(draft.biggestProblem);
@@ -586,13 +293,13 @@ export default function Onboarding() {
   };
 
   const moveToNext = () => {
-    setStepIndex((current) => Math.min(current + 1, steps.length - 1));
+    setStepIndex((current) => Math.min(current + 1, onboardingSteps.length - 1));
   };
 
   const selectAndAdvance = <T,>(setter: (value: T) => void, value: T) => {
     setter(value);
     window.setTimeout(() => {
-      setStepIndex((current) => Math.min(current + 1, steps.length - 1));
+      setStepIndex((current) => Math.min(current + 1, onboardingSteps.length - 1));
     }, 180);
   };
 
@@ -782,7 +489,7 @@ export default function Onboarding() {
                 {currentStep.label}
               </p>
               <div data-testid="onboarding-progress" className="flex items-center gap-2">
-                {steps.map((step, index) => (
+                {onboardingSteps.map((step, index) => (
                   <div
                     key={step.id}
                     className={`h-2.5 w-10 rounded-full transition-colors ${

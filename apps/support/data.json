@@ -111,7 +111,7 @@
           "id": "statement-errors",
           "question": "Why did financial statement generation fail?",
           "summary": "Most statement errors come from session problems, low data, or a temporary network issue.",
-          "answer": "If EVA cannot generate your financial statement, first refresh the page once so the authenticated session and workspace bootstrap reload cleanly. If you just verified your email, wait a moment and try again so the session token settles before the request reaches the backend. If the error keeps repeating, make sure you are still signed into the same account that completed onboarding, and check whether EVA is asking you to enable MFA for this sensitive action first. If the statement still fails after those checks, use the support link from the statement screen and include the exact error text.",
+          "answer": "If EVA cannot generate your financial statement, first refresh the page once so the authenticated session and workspace bootstrap reload cleanly. If you just verified your email, wait a moment and try again so the session token settles before the request reaches the backend. If the error keeps repeating, make sure you are still signed into the same account that completed onboarding, and check whether EVA is asking you to complete email security verification for this sensitive action first. If the statement still fails after those checks, use the support link from the statement screen and include the exact error text.",
           "keywords": ["statement failed", "invalid jwt", "session error", "generate statement"]
         },
         {
@@ -136,10 +136,10 @@
         },
         {
           "id": "mfa-security",
-          "question": "Why is EVA asking me to enable MFA for some actions?",
-          "summary": "EVA only asks for MFA before sensitive actions such as statement generation or approving imported finance data.",
-          "answer": "EVA does not require MFA for casual browsing. Instead, it steps security up only for sensitive actions like generating a financial statement, approving imported draft transactions, or using receipt-forwarding workflows. To enable MFA, open Settings, go to Account, start the authenticator setup, scan the QR code, and verify the six-digit code from your authenticator app. If you already enabled MFA but EVA still prompts you, use Refresh MFA status once and then try the action again.",
-          "keywords": ["mfa", "2fa", "authenticator", "security", "statement", "draft transactions"]
+          "question": "Why is EVA asking me for an email security code?",
+          "summary": "EVA only sends a security code before sensitive finance actions such as statement generation or approving imported data.",
+          "answer": "EVA does not require extra verification for casual browsing. Instead, it steps security up only for sensitive actions like generating a financial statement, approving imported draft transactions, or revealing your receipt-forwarding inbox. When that happens, EVA emails a short one-time code to your verified address. Enter that code in the prompt to unlock only the action you requested. If a code expires, request a new one and try again. You do not need an authenticator app for this flow.",
+          "keywords": ["security code", "email verification", "statement", "draft transactions", "receipt forwarding"]
         },
         {
           "id": "sign-out",

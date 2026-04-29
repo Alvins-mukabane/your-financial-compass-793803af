@@ -9,7 +9,6 @@ import ManualEntryForm from "@/components/financial/ManualEntryForm";
 import CashflowDiagram from "@/components/financial/CashflowDiagram";
 import SensitiveActionDialog from "@/components/SensitiveActionDialog";
 import { useFinancialEntries } from "@/hooks/useFinancialEntries";
-import { useMfaStatus } from "@/hooks/useMfaStatus";
 import { SUPPORT_LINKS } from "@/lib/supportLinks";
 
 type IncomeItem = { name: string; amount: number; description?: string };
@@ -46,24 +45,6 @@ export default function FinancialStatement() {
   const [statementGateOpen, setStatementGateOpen] = useState(false);
   const statementRef = useRef<HTMLDivElement>(null);
   const { assets: manualAssets, liabilities: manualLiabilities, addAsset, addLiability, editAsset, editLiability, deleteAsset, deleteLiability } = useFinancialEntries();
-  const {
-    hasVerifiedMfa,
-    loading: mfaLoading,
-    refresh: refreshMfaStatus,
-  } = useMfaStatus();
-
-  const ensureStatementAccess = async () => {
-    const status = hasVerifiedMfa
-      ? { hasVerifiedMfa: true }
-      : await refreshMfaStatus();
-
-    if (!status.hasVerifiedMfa) {
-      setStatementGateOpen(true);
-      return false;
-    }
-
-    return true;
-  };
 
   const exportPDF = async () => {
     if (!statementRef.current) return;
@@ -106,19 +87,22 @@ export default function FinancialStatement() {
     }
   };
 
-  const generate = async () => {
+  const generate = async (securityVerificationId?: string) => {
     if (!hasSupabaseConfig) {
       toast.error(SUPABASE_SETUP_MESSAGE);
       return;
     }
 
-    if (!(await ensureStatementAccess())) {
+    if (!securityVerificationId) {
+      setStatementGateOpen(true);
       return;
     }
 
     setLoading(true);
     try {
-      const result = await invokeEdgeFunction<FinancialStatementData>("generate-statement");
+      const result = await invokeEdgeFunction<FinancialStatementData>("generate-statement", {
+        security_verification_id: securityVerificationId,
+      });
       setData(result);
     } catch (e: any) {
       toast.error(e.message || "Failed to generate statement");
@@ -145,11 +129,11 @@ export default function FinancialStatement() {
   const statementGate = (
     <SensitiveActionDialog
       action="generate_statement"
-      checking={mfaLoading}
-      hasVerifiedMfa={hasVerifiedMfa}
       open={statementGateOpen}
       onOpenChange={setStatementGateOpen}
-      onRefresh={refreshMfaStatus}
+      onVerified={async (verificationId) => {
+        await generate(verificationId);
+      }}
     />
   );
 
@@ -168,6 +152,9 @@ export default function FinancialStatement() {
               longer required to get your first statement.
             </p>
             <p className="mt-3 text-xs text-muted-foreground">
+              EVA will send a short email security code before generating this sensitive summary.
+            </p>
+            <p className="mt-3 text-xs text-muted-foreground">
               Need help?{" "}
               <a
                 href={SUPPORT_LINKS.statementErrors}
@@ -179,7 +166,7 @@ export default function FinancialStatement() {
               </a>
               .
             </p>
-            <button data-testid="statement-generate-button" onClick={generate}
+            <button data-testid="statement-generate-button" onClick={() => void generate()}
               className="mt-6 inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-primary text-primary-foreground font-medium text-sm hover:bg-primary/90 transition-colors active:scale-[0.97]"
             >
               <Sparkles className="w-4 h-4" /> Generate My Statement
@@ -243,7 +230,7 @@ export default function FinancialStatement() {
             {exporting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
             {exporting ? "Exporting..." : "Export PDF"}
           </button>
-          <button data-testid="statement-regenerate-button" onClick={generate} disabled={loading}
+          <button data-testid="statement-regenerate-button" onClick={() => void generate()} disabled={loading}
             className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
           >
             <RefreshCw className={cn("w-4 h-4", loading && "animate-spin")} /> Regenerate

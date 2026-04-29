@@ -3,7 +3,6 @@ import { Link, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
-  Brain,
   CheckCircle2,
   KeyRound,
   LockKeyhole,
@@ -11,7 +10,6 @@ import {
   RefreshCw,
   ShieldCheck,
   Sparkles,
-  Target,
   UserRound,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -34,109 +32,26 @@ import {
   getAuthErrorMessage,
   getPasswordStrength,
   isValidEmail,
-  type PasswordStrengthLevel,
 } from "@/lib/authProfile";
+import {
+  authHighlights,
+  consumeVerificationAutoResend,
+  getMode,
+  getStrengthLabel,
+  getVerificationFlow,
+  persistLastEmail,
+  queueVerificationAutoResend,
+  readLastEmail,
+  type AuthMode,
+  type VerificationFlow,
+  type VerificationMethod,
+  VERIFY_EMAIL_AUTO_RESEND_DELAY_SECONDS,
+} from "@/features/auth/authView";
 import { SUPPORT_LINKS } from "@/lib/supportLinks";
-
-type AuthMode = "signin" | "signup" | "verify-email" | "set-password";
-type VerificationFlow = "signup" | "legacy";
-type VerificationMethod = "magic-link" | "code";
-const VERIFY_EMAIL_AUTO_RESEND_KEY = "eva-pending-verification-email";
-const VERIFY_EMAIL_AUTO_RESEND_DELAY_SECONDS = 12;
 
 type AuthProps = {
   forcedMode?: AuthMode;
 };
-
-function readLastEmail() {
-  if (typeof window === "undefined") {
-    return "";
-  }
-
-  return window.localStorage.getItem("eva-last-email") ?? "";
-}
-
-function persistLastEmail(email: string) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.localStorage.setItem("eva-last-email", email);
-}
-
-function queueVerificationAutoResend(email: string) {
-  if (typeof window === "undefined") {
-    return;
-  }
-
-  window.sessionStorage.setItem(
-    VERIFY_EMAIL_AUTO_RESEND_KEY,
-    JSON.stringify({
-      email: email.trim().toLowerCase(),
-      queuedAt: Date.now(),
-    }),
-  );
-}
-
-function consumeVerificationAutoResend(email: string) {
-  if (typeof window === "undefined") {
-    return false;
-  }
-
-  try {
-    const raw = window.sessionStorage.getItem(VERIFY_EMAIL_AUTO_RESEND_KEY);
-    if (!raw) {
-      return false;
-    }
-
-    const parsed = JSON.parse(raw) as { email?: string; queuedAt?: number };
-    window.sessionStorage.removeItem(VERIFY_EMAIL_AUTO_RESEND_KEY);
-
-    if (parsed.email !== email.trim().toLowerCase()) {
-      return false;
-    }
-
-    return typeof parsed.queuedAt === "number" && Date.now() - parsed.queuedAt < 5 * 60_000;
-  } catch {
-    window.sessionStorage.removeItem(VERIFY_EMAIL_AUTO_RESEND_KEY);
-    return false;
-  }
-}
-
-function getMode(value: string | null): AuthMode {
-  if (value === "signup" || value === "verify-email" || value === "set-password") {
-    return value;
-  }
-  return "signin";
-}
-
-function getVerificationFlow(value: string | null): VerificationFlow {
-  return value === "legacy" ? "legacy" : "signup";
-}
-
-function getStrengthLabel(level: PasswordStrengthLevel) {
-  if (level === "strong") return "Strong";
-  if (level === "medium") return "Medium";
-  return "Weak";
-}
-
-const authHighlights = [
-  {
-    icon: ShieldCheck,
-    title: "Verified access first",
-    description: "Every EVA account is confirmed by email before the workspace opens.",
-  },
-  {
-    icon: Brain,
-    title: "One canonical money record",
-    description: "Your dashboard, history, statements, and insights stay anchored to the same data.",
-  },
-  {
-    icon: Target,
-    title: "Onboarding with a real next step",
-    description: "New users verify, onboard, and land in a workspace that already knows what to focus on.",
-  },
-];
 
 export default function Auth({ forcedMode }: AuthProps) {
   const {
@@ -1172,7 +1087,7 @@ export default function Auth({ forcedMode }: AuthProps) {
                   currentMode === "verify-email"
                     ? SUPPORT_LINKS.verificationOptions
                     : currentMode === "set-password"
-                      ? SUPPORT_LINKS.mfaSecurity
+                      ? SUPPORT_LINKS.verifyEmail
                       : SUPPORT_LINKS.verifyEmail
                 }
                 target="_blank"

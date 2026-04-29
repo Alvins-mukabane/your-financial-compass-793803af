@@ -3,20 +3,14 @@ import { format } from "date-fns";
 import { motion } from "framer-motion";
 import { useTheme } from "next-themes";
 import {
-  Bell,
   Building2,
-  CreditCard,
   HelpCircle,
   Loader2,
   LogOut,
   MessageCircle,
   MoonStar,
-  Palette,
   Save,
-  Shield,
   SlidersHorizontal,
-  User,
-  type LucideIcon,
 } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 import { toast } from "sonner";
@@ -27,9 +21,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { usePublicUser } from "@/context/PublicUserContext";
 import { useAppPreferences } from "@/context/app-preferences-context";
+import {
+  PreferenceOption,
+  readNotificationPreferences,
+  SectionSurface,
+  SETTINGS_SECTIONS,
+  type NotificationPreferences,
+} from "@/features/settings/settingsView";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
-import { useMfaStatus } from "@/hooks/useMfaStatus";
-import { supabase } from "@/integrations/supabase/client";
 import {
   BUDGETING_FOCUS_OPTIONS,
   COUNTRIES,
@@ -42,162 +41,6 @@ import {
 } from "@/lib/appPreferences";
 import { SUPPORT_LINKS } from "@/lib/supportLinks";
 import { cn } from "@/lib/utils";
-
-type SectionMeta = {
-  title: string;
-  description: string;
-  icon: LucideIcon;
-};
-
-const SETTINGS_SECTIONS: Record<SettingsSection, SectionMeta> = {
-  settings: {
-    title: "App Preferences",
-    description: "Control appearance, text size, and motion without changing your account data.",
-    icon: Palette,
-  },
-  profile: {
-    title: "Profile",
-    description: "Keep your personal details and planning defaults up to date.",
-    icon: User,
-  },
-  account: {
-    title: "Account",
-    description: "Review your signed-in account, security status, and session controls.",
-    icon: Shield,
-  },
-  notifications: {
-    title: "Notifications",
-    description: "Choose which alerts and recaps eva should surface for you.",
-    icon: Bell,
-  },
-  billing: {
-    title: "Billing",
-    description: "See your current plan and what is reserved for future upgrades.",
-    icon: CreditCard,
-  },
-  help: {
-    title: "Help & Support",
-    description: "Find support, troubleshooting tips, and the best way to get help quickly.",
-    icon: HelpCircle,
-  },
-  feedback: {
-    title: "Feedback",
-    description: "Tell us what is working, what feels rough, and what should improve next.",
-    icon: MessageCircle,
-  },
-};
-
-const NOTIFICATION_STORAGE_KEY = "eva_notification_preferences";
-
-type NotificationPreferences = {
-  pushEnabled: boolean;
-  stockAlerts: boolean;
-  budgetWarnings: boolean;
-  weeklyReports: boolean;
-  dailySummary: boolean;
-  newsDigest: boolean;
-};
-
-type PendingTotpEnrollment = {
-  id: string;
-  qrCode: string;
-  secret: string;
-  uri: string;
-  friendlyName: string;
-};
-
-const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
-  pushEnabled: false,
-  stockAlerts: true,
-  budgetWarnings: true,
-  weeklyReports: true,
-  dailySummary: false,
-  newsDigest: true,
-};
-
-function readNotificationPreferences(): NotificationPreferences {
-  if (typeof window === "undefined") {
-    return DEFAULT_NOTIFICATION_PREFERENCES;
-  }
-
-  try {
-    const raw = window.localStorage.getItem(NOTIFICATION_STORAGE_KEY);
-    if (!raw) {
-      return DEFAULT_NOTIFICATION_PREFERENCES;
-    }
-
-    const parsed = JSON.parse(raw) as Partial<NotificationPreferences>;
-    return {
-      ...DEFAULT_NOTIFICATION_PREFERENCES,
-      ...parsed,
-    };
-  } catch {
-    return DEFAULT_NOTIFICATION_PREFERENCES;
-  }
-}
-
-function PreferenceOption({
-  active,
-  label,
-  detail,
-  onClick,
-}: {
-  active: boolean;
-  label: string;
-  detail: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "rounded-2xl border px-4 py-3 text-left transition-colors",
-        active
-          ? "border-primary bg-primary/10 text-primary shadow-[inset_0_0_0_1px_rgba(243,162,28,0.14)]"
-          : "border-border bg-background text-foreground hover:border-primary/30 hover:bg-secondary/50",
-      )}
-    >
-      <p className="text-sm font-semibold">{label}</p>
-      <p className={cn("mt-1 text-xs", active ? "text-primary/80" : "text-muted-foreground")}>{detail}</p>
-    </button>
-  );
-}
-
-function SectionSurface({
-  title,
-  subtitle,
-  icon: Icon,
-  testId,
-  children,
-}: {
-  title: string;
-  subtitle: string;
-  icon: LucideIcon;
-  testId?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <motion.section
-      data-testid={testId}
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="space-y-5 rounded-[1.75rem] border border-border bg-card/95 p-5 shadow-[0_22px_55px_-38px_rgba(110,73,75,0.24)] md:p-6"
-    >
-      <div className="flex items-start gap-3 border-b border-border/80 pb-4">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/12 text-primary">
-          <Icon className="h-5 w-5" />
-        </div>
-        <div className="space-y-1">
-          <h2 className="text-base font-semibold text-foreground">{title}</h2>
-          <p className="text-sm text-muted-foreground">{subtitle}</p>
-        </div>
-      </div>
-
-      {children}
-    </motion.section>
-  );
-}
 
 export default function Settings() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -212,10 +55,6 @@ export default function Settings() {
   const [feedbackMsg, setFeedbackMsg] = useState("");
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [notifPrefs, setNotifPrefs] = useState<NotificationPreferences>(() => readNotificationPreferences());
-  const [mfaBusy, setMfaBusy] = useState(false);
-  const [mfaCode, setMfaCode] = useState("");
-  const [pendingTotpEnrollment, setPendingTotpEnrollment] =
-    useState<PendingTotpEnrollment | null>(null);
   const [form, setForm] = useState({
     first_name: "",
     last_name: "",
@@ -229,16 +68,6 @@ export default function Settings() {
     monthly_fixed_expenses: "",
     budgeting_focus: BUDGETING_FOCUS_OPTIONS[0],
   });
-
-  const {
-    assuranceLevel: mfaAssuranceLevel,
-    error: mfaError,
-    factors: mfaFactors,
-    hasVerifiedMfa,
-    loading: mfaStatusLoading,
-    refresh: refreshMfaStatus,
-    verifiedTotpFactors,
-  } = useMfaStatus();
 
   useEffect(() => {
     if (requestedSection !== activeSection) {
@@ -318,122 +147,6 @@ export default function Settings() {
       toast.error(
         error instanceof Error ? error.message : "Unable to sign out right now.",
       );
-    }
-  };
-
-  const handleStartMfaSetup = async () => {
-    setMfaBusy(true);
-    try {
-      const startEnrollment = async () => {
-        const { data, error } = await supabase.auth.mfa.enroll({
-          factorType: "totp",
-          friendlyName: "eva Authenticator",
-        });
-
-        if (error) {
-          throw error;
-        }
-
-        return data;
-      };
-
-      let data;
-
-      try {
-        data = await startEnrollment();
-      } catch (error) {
-        const message = error instanceof Error ? error.message : "";
-        const hasStaleTotpFactor = /friendly name .* already exists/i.test(message);
-
-        if (!hasStaleTotpFactor) {
-          throw error;
-        }
-
-        const staleTotpFactors = mfaFactors.filter(
-          (factor) => factor.factor_type === "totp" && factor.status !== "verified",
-        );
-
-        if (!staleTotpFactors.length) {
-          throw error;
-        }
-
-        for (const factor of staleTotpFactors) {
-          const { error: unenrollError } = await supabase.auth.mfa.unenroll({
-            factorId: factor.id,
-          });
-
-          if (unenrollError) {
-            throw unenrollError;
-          }
-        }
-
-        await refreshMfaStatus();
-        data = await startEnrollment();
-        toast.message("We cleared an unfinished MFA setup and restarted it for you.");
-      }
-
-      setPendingTotpEnrollment({
-        id: data.id,
-        qrCode: data.totp.qr_code,
-        secret: data.totp.secret,
-        uri: data.totp.uri,
-        friendlyName: data.friendly_name ?? "eva Authenticator",
-      });
-      setMfaCode("");
-      toast.success("Scan the QR code in your authenticator app, then enter the code below.");
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "We could not start MFA setup right now.",
-      );
-    } finally {
-      setMfaBusy(false);
-    }
-  };
-
-  const handleVerifyMfaSetup = async () => {
-    if (!pendingTotpEnrollment) {
-      return;
-    }
-
-    if (mfaCode.trim().length < 6) {
-      toast.error("Enter the six-digit code from your authenticator app.");
-      return;
-    }
-
-    setMfaBusy(true);
-    try {
-      const challenge = await supabase.auth.mfa.challenge({
-        factorId: pendingTotpEnrollment.id,
-      });
-
-      if (challenge.error || !challenge.data) {
-        throw challenge.error ?? new Error("We could not create an MFA challenge.");
-      }
-
-      const verifyResult = await supabase.auth.mfa.verify({
-        factorId: pendingTotpEnrollment.id,
-        challengeId: challenge.data.id,
-        code: mfaCode.trim(),
-      });
-
-      if (verifyResult.error) {
-        throw verifyResult.error;
-      }
-
-      setPendingTotpEnrollment(null);
-      setMfaCode("");
-      toast.success("Multi-factor authentication is now enabled for your eva account.");
-      await refreshMfaStatus();
-    } catch (error) {
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : "We could not verify that MFA code right now.",
-      );
-    } finally {
-      setMfaBusy(false);
     }
   };
 
@@ -790,7 +503,7 @@ export default function Settings() {
         <SectionSurface
           testId="settings-section-account"
           title="Account details"
-          subtitle="Your sign-in identity, verification, and session controls live here."
+          subtitle="Your sign-in identity, email-based security verification, and session controls live here."
           icon={Shield}
         >
           <div className="grid gap-4 md:grid-cols-2">
@@ -818,119 +531,38 @@ export default function Settings() {
           </div>
 
           <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
-            <p className="text-sm font-semibold text-foreground">Multi-factor authentication</p>
+            <p className="text-sm font-semibold text-foreground">Security verification</p>
             <p className="mt-2 text-sm text-muted-foreground">
-              Because eva holds sensitive financial data, we recommend adding an authenticator app as a second layer of sign-in protection.
+              EVA now protects sensitive actions with a short email code instead of an authenticator app. Browsing your dashboard stays friction-free, but statement generation, draft approvals, and receipt-forwarding reveal requests are verified by email first.
             </p>
             <a
-              href={SUPPORT_LINKS.mfaSecurity}
+              href={SUPPORT_LINKS.securityVerification}
               target="_blank"
               rel="noreferrer"
               className="mt-3 inline-flex text-xs font-semibold text-primary hover:text-primary/85"
             >
-              Read the MFA setup and recovery guide
+              Read the email security verification guide
             </a>
 
-            <div className="mt-4 rounded-2xl border border-border bg-background/80 p-4">
-              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                <div>
-                  <p className="text-sm font-semibold text-foreground">
-                    {hasVerifiedMfa ? "MFA is enabled" : "MFA is not enabled yet"}
-                  </p>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {hasVerifiedMfa
-                      ? `Current assurance level: ${mfaAssuranceLevel ?? "aal2"}`
-                      : "Set up a TOTP authenticator app to protect your eva account beyond password-only sign-in."}
-                  </p>
-                </div>
-                {!hasVerifiedMfa && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    className="gap-2"
-                    onClick={handleStartMfaSetup}
-                    disabled={mfaBusy || mfaStatusLoading}
-                  >
-                    {mfaBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
-                    {pendingTotpEnrollment ? "Restart setup" : "Enable MFA"}
-                  </Button>
-                )}
+            <div className="mt-4 grid gap-4 md:grid-cols-2">
+              <div className="rounded-2xl border border-border bg-background/80 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  Verification method
+                </p>
+                <p className="mt-2 text-sm font-semibold text-foreground">Email code</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  EVA sends a short one-time code to your verified email whenever a sensitive finance action needs an extra check.
+                </p>
               </div>
-
-              {mfaStatusLoading && (
-                <p className="mt-3 text-xs text-muted-foreground">Loading MFA status...</p>
-              )}
-
-              {mfaError && (
-                <div className="mt-3 rounded-xl border border-destructive/20 bg-destructive/5 p-3 text-xs text-destructive">
-                  {mfaError}
-                </div>
-              )}
-
-              {hasVerifiedMfa && (
-                <div className="mt-4 space-y-2">
-                  {verifiedTotpFactors.map((factor) => (
-                    <div key={factor.id} className="rounded-xl border border-border px-3 py-3">
-                      <p className="text-sm font-semibold text-foreground">
-                        {factor.friendly_name || "eva Authenticator"}
-                      </p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        Verified TOTP factor active. Sign-ins can be stepped up to AAL2 when required.
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {pendingTotpEnrollment && !hasVerifiedMfa && (
-                <div className="mt-4 space-y-4 rounded-2xl border border-primary/20 bg-primary/5 p-4">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">Finish MFA setup</p>
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Scan the QR code with Google Authenticator, 1Password, Authy, or another TOTP app, then enter the current code.
-                    </p>
-                  </div>
-
-                  <div className="flex justify-center rounded-2xl bg-white p-4">
-                    <img
-                      src={`data:image/svg+xml;utf8,${encodeURIComponent(pendingTotpEnrollment.qrCode)}`}
-                      alt="TOTP QR code for eva MFA setup"
-                      className="h-40 w-40"
-                    />
-                  </div>
-
-                  <div className="rounded-xl border border-border bg-background px-3 py-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                      Manual setup secret
-                    </p>
-                    <p className="mt-2 break-all font-mono text-sm text-foreground">
-                      {pendingTotpEnrollment.secret}
-                    </p>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="mfa-code">Authenticator code</Label>
-                    <Input
-                      id="mfa-code"
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      value={mfaCode}
-                      onChange={(event) => setMfaCode(event.target.value.replace(/\s+/g, ""))}
-                      placeholder="123456"
-                    />
-                  </div>
-
-                  <Button
-                    type="button"
-                    className="w-full gap-2"
-                    onClick={handleVerifyMfaSetup}
-                    disabled={mfaBusy || mfaCode.trim().length < 6}
-                  >
-                    {mfaBusy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Shield className="h-4 w-4" />}
-                    {mfaBusy ? "Verifying..." : "Verify and enable MFA"}
-                  </Button>
-                </div>
-              )}
+              <div className="rounded-2xl border border-border bg-background/80 p-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                  What gets verified
+                </p>
+                <p className="mt-2 text-sm font-semibold text-foreground">Sensitive finance actions only</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Statement generation, imported transaction approval, receipt-forwarding access, and future account-security changes all use this email step-up.
+                </p>
+              </div>
             </div>
           </div>
 
@@ -1142,9 +774,9 @@ export default function Settings() {
                 href: SUPPORT_LINKS.onboardingRecovery,
               },
               {
-                title: "MFA setup and recovery",
-                desc: "Read this before enabling MFA or if a sensitive action asks you to refresh your MFA status first.",
-                href: SUPPORT_LINKS.mfaSecurity,
+                title: "Email security verification",
+                desc: "Read this when EVA asks for an email code before a statement, draft approval, or receipt-forwarding action.",
+                href: SUPPORT_LINKS.securityVerification,
               },
             ].map((item) => (
               <div key={item.title} className="rounded-2xl border border-border bg-background/80 p-4">

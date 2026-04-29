@@ -8,107 +8,44 @@ import SensitiveActionDialog from "@/components/SensitiveActionDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useMfaStatus } from "@/hooks/useMfaStatus";
 import {
-  SPENDING_CATEGORIES,
   SPENDING_CATEGORY_COLORS,
   SPENDING_CATEGORY_ICONS,
   type SpendingCategory,
   formatCurrencyDetailed,
 } from "@/lib/finance";
+import {
+  fadeUp,
+  getImportSourceLabel,
+  optimizeReceiptImage,
+  transactionCategories,
+  type TransactionRow,
+} from "@/features/transactions/transactionsUtils";
 import { SUPPORT_LINKS } from "@/lib/supportLinks";
 import { cn } from "@/lib/utils";
-
-type TransactionRow = {
-  id: string;
-  date: string;
-  merchant: string;
-  category: SpendingCategory;
-  amount: number;
-};
-
-const categories: Array<SpendingCategory | "All"> = ["All", ...SPENDING_CATEGORIES];
-
-const fadeUp = {
-  hidden: { opacity: 0, y: 12, filter: "blur(4px)" },
-  visible: (index: number) => ({
-    opacity: 1,
-    y: 0,
-    filter: "blur(0px)",
-    transition: { delay: index * 0.03, duration: 0.4, ease: [0.16, 1, 0.3, 1] },
-  }),
-};
-
-function getImportSourceLabel(source: "csv" | "forwarded_email" | "receipt_image") {
-  if (source === "csv") return "CSV import";
-  if (source === "receipt_image") return "Receipt photo";
-  return "Forwarded receipt";
-}
-
-function fileToDataUrl(file: File) {
-  return new Promise<string>((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => {
-      if (typeof reader.result === "string") {
-        resolve(reader.result);
-        return;
-      }
-
-      reject(new Error("We could not read that image."));
-    };
-    reader.onerror = () => reject(new Error("We could not read that image."));
-    reader.readAsDataURL(file);
-  });
-}
-
-async function optimizeReceiptImage(file: File) {
-  const dataUrl = await fileToDataUrl(file);
-
-  if (typeof window === "undefined") {
-    return dataUrl;
-  }
-
-  const image = await new Promise<HTMLImageElement>((resolve, reject) => {
-    const nextImage = new window.Image();
-    nextImage.onload = () => resolve(nextImage);
-    nextImage.onerror = () => reject(new Error("We could not open that receipt photo."));
-    nextImage.src = dataUrl;
-  });
-
-  const maxDimension = 1600;
-  const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
-  const width = Math.max(1, Math.round(image.width * scale));
-  const height = Math.max(1, Math.round(image.height * scale));
-
-  const canvas = document.createElement("canvas");
-  canvas.width = width;
-  canvas.height = height;
-
-  const context = canvas.getContext("2d");
-  if (!context) {
-    return dataUrl;
-  }
-
-  // Shrink large receipt photos before sending them through the finance-core edge function.
-  context.drawImage(image, 0, 0, width, height);
-  return canvas.toDataURL("image/jpeg", 0.82);
-}
 
 export default function Transactions() {
   const {
     bootstrap,
     analyzeReceiptImage,
+    getReceiptForwardingAddress,
     importCsvTransactions,
     reviewDraftTransaction,
-    userId,
   } = usePublicUser();
   const [filter, setFilter] = useState<SpendingCategory | "All">("All");
   const [search, setSearch] = useState("");
   const [importing, setImporting] = useState(false);
   const [receiptImporting, setReceiptImporting] = useState(false);
   const [editingDraftId, setEditingDraftId] = useState<string | null>(null);
-  const [receiptGateOpen, setReceiptGateOpen] = useState(false);
-  const [reviewGateOpen, setReviewGateOpen] = useState(false);
+  const [pendingSensitiveAction, setPendingSensitiveAction] = useState<
+    | null
+    | { type: "receipt_forwarding" }
+    | {
+        type: "review_draft_transaction";
+        draftId: string;
+        decision: "approve" | "edit";
+      }
+  >(null);
   const [editForm, setEditForm] = useState({
     merchant: "",
     category: "Other",
@@ -119,31 +56,6 @@ export default function Transactions() {
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const receiptImageInputRef = useRef<HTMLInputElement | null>(null);
   const receiptCameraInputRef = useRef<HTMLInputElement | null>(null);
-  const {
-    hasVerifiedMfa,
-    loading: mfaLoading,
-    refresh: refreshMfaStatus,
-  } = useMfaStatus();
-
-  const ensureSensitiveAccess = async (
-    action: "receipt_forwarding" | "review_draft_transaction",
-  ) => {
-    const status = hasVerifiedMfa
-      ? { hasVerifiedMfa: true }
-      : await refreshMfaStatus();
-
-    if (status.hasVerifiedMfa) {
-      return true;
-    }
-
-    if (action === "receipt_forwarding") {
-      setReceiptGateOpen(true);
-    } else {
-      setReviewGateOpen(true);
-    }
-
-    return false;
-  };
 
   const transactions = useMemo<TransactionRow[]>(
     () =>
@@ -162,9 +74,6 @@ export default function Transactions() {
   const pendingDrafts = bootstrap.draft_transactions.filter(
     (draft) => draft.status === "pending",
   );
-  const receiptForwardAddress = userId
-    ? `receipts+${userId}@useaima.com`
-    : "receipts@useaima.com";
 
   const filtered = useMemo(
     () =>
@@ -205,16 +114,22 @@ export default function Transactions() {
     });
   };
 
-  const handleCopyReceiptAddress = async () => {
-    if (!(await ensureSensitiveAccess("receipt_forwarding"))) {
-      return;
-    }
-
+  const handleCopyReceiptAddress = async (securityVerificationId?: string) => {
     try {
-      await navigator.clipboard.writeText(receiptForwardAddress);
+      if (!securityVerificationId) {
+        setPendingSensitiveAction({ type: "receipt_forwarding" });
+        return;
+      }
+
+      const { address } = await getReceiptForwardingAddress(securityVerificationId);
+      await navigator.clipboard.writeText(address);
       toast.success("Receipt forwarding address copied.");
-    } catch {
-      toast.error("Unable to copy the receipt address right now.");
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Unable to copy the receipt address right now.",
+      );
     }
   };
 
@@ -237,18 +152,16 @@ export default function Transactions() {
     }
   };
 
-  const handleReviewDecision = async (
+  const executeReviewDecision = async (
     draftId: string,
     decision: "approve" | "reject" | "edit",
+    securityVerificationId?: string | null,
   ) => {
-    if (decision !== "reject" && !(await ensureSensitiveAccess("review_draft_transaction"))) {
-      return;
-    }
-
     try {
       await reviewDraftTransaction({
         draftTransactionId: draftId,
         decision,
+        securityVerificationId,
         updates:
           decision === "edit"
             ? {
@@ -271,6 +184,26 @@ export default function Transactions() {
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "We could not review that draft.");
     }
+  };
+
+  const handleReviewDecision = async (
+    draftId: string,
+    decision: "approve" | "reject" | "edit",
+  ) => {
+    if (decision === "reject") {
+      await executeReviewDecision(draftId, decision, null);
+      return;
+    }
+
+    if (decision === "edit") {
+      setEditingDraftId(null);
+    }
+
+    setPendingSensitiveAction({
+      type: "review_draft_transaction",
+      draftId,
+      decision,
+    });
   };
 
   const handleReceiptPhoto = async (file: File | null) => {
@@ -452,14 +385,21 @@ export default function Transactions() {
           </h2>
           <p className="mt-2 text-sm text-muted-foreground">
             Forward receipt emails here. EVA will turn them into draft transactions for review
-            instead of silently logging them.
+            instead of silently logging them. We verify the reveal by email first so that inbox
+            stays private to your account.
           </p>
           <div className="mt-4 flex items-center gap-2 rounded-2xl border border-border/80 bg-background/80 px-3 py-3">
             <Mail className="h-4 w-4 text-primary" />
             <span data-testid="transactions-receipt-address" className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
-              {receiptForwardAddress}
+              Verify by email to reveal your personal EVA receipt inbox
             </span>
-            <Button data-testid="transactions-copy-receipt-address" type="button" variant="outline" size="sm" onClick={handleCopyReceiptAddress}>
+            <Button
+              data-testid="transactions-copy-receipt-address"
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void handleCopyReceiptAddress()}
+            >
               <Copy className="h-3.5 w-3.5" />
             </Button>
           </div>
@@ -630,7 +570,7 @@ export default function Transactions() {
         transition={{ delay: 0.15 }}
         className="flex gap-1.5 overflow-x-auto pb-1"
       >
-        {categories.map((category) => (
+              {transactionCategories.map((category) => (
           <button
             key={category}
             type="button"
@@ -789,21 +729,32 @@ export default function Transactions() {
       </Dialog>
 
       <SensitiveActionDialog
-        action="receipt_forwarding"
-        checking={mfaLoading}
-        hasVerifiedMfa={hasVerifiedMfa}
-        open={receiptGateOpen}
-        onOpenChange={setReceiptGateOpen}
-        onRefresh={refreshMfaStatus}
-      />
+        action={pendingSensitiveAction?.type ?? "review_draft_transaction"}
+        open={Boolean(pendingSensitiveAction)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingSensitiveAction(null);
+          }
+        }}
+        onVerified={async (verificationId) => {
+          const currentAction = pendingSensitiveAction;
+          setPendingSensitiveAction(null);
 
-      <SensitiveActionDialog
-        action="review_draft_transaction"
-        checking={mfaLoading}
-        hasVerifiedMfa={hasVerifiedMfa}
-        open={reviewGateOpen}
-        onOpenChange={setReviewGateOpen}
-        onRefresh={refreshMfaStatus}
+          if (!currentAction) {
+            return;
+          }
+
+          if (currentAction.type === "receipt_forwarding") {
+            await handleCopyReceiptAddress(verificationId);
+            return;
+          }
+
+          await executeReviewDecision(
+            currentAction.draftId,
+            currentAction.decision,
+            verificationId,
+          );
+        }}
       />
     </div>
   );

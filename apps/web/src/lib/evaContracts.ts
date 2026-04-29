@@ -220,6 +220,11 @@ export interface GoalStatus {
 }
 
 export type ImportSource = "csv" | "forwarded_email" | "receipt_image";
+export type SensitiveActionId =
+  | "generate_statement"
+  | "review_draft_transaction"
+  | "receipt_forwarding"
+  | "security_settings";
 
 export interface ImportJob {
   id: string;
@@ -262,6 +267,27 @@ export interface NotificationItem {
   is_read: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface SensitiveActionCodeRequest {
+  verification_id: string;
+  action: SensitiveActionId;
+  expires_at: string;
+  resend_available_at: string;
+  delivery_target: string;
+}
+
+export interface SensitiveActionVerificationResult {
+  verification_id: string;
+  action: SensitiveActionId;
+  verified_at: string;
+  expires_at: string;
+}
+
+export interface ReceiptForwardingDetails {
+  address: string;
+  label: string;
+  instructions: string;
 }
 
 export interface EmptyFlags {
