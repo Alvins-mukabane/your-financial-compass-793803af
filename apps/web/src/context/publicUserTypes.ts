@@ -6,9 +6,13 @@ import type {
   BudgetLimit,
   DraftTransaction,
   FinancialEntry,
+  GroundedSearchRequest,
+  GroundedSearchResult,
   MediaAnalysisRequest,
   MediaAnalysisResult,
   OnboardingPayload,
+  PlaceSearchRequest,
+  PlaceSearchResult,
   ReceiptForwardingDetails,
   SensitiveActionCodeRequest,
   SensitiveActionId,
@@ -67,6 +71,8 @@ export type PublicUserContextValue = {
     autopilotHighRiskEnabled?: boolean;
   }) => Promise<void>;
   runAgentPlanner: () => Promise<void>;
+  runAgentCycle: (mode?: "manual" | "assisted" | "autopilot" | "scheduled") => Promise<void>;
+  runRecoveryAgent: (reason?: string) => Promise<void>;
   saveGoal: (goal: Partial<UserGoal>) => Promise<void>;
   deleteGoal: (goalId: string) => Promise<void>;
   saveBudgetLimit: (limit: Partial<BudgetLimit>) => Promise<void>;
@@ -83,6 +89,8 @@ export type PublicUserContextValue = {
   importCsvTransactions: (csvText: string, fileName: string) => Promise<void>;
   analyzeReceiptImage: (imageDataUrl: string, fileName: string) => Promise<void>;
   analyzeMedia: (request: MediaAnalysisRequest) => Promise<MediaAnalysisResult>;
+  groundedGoogleSearch: (request: GroundedSearchRequest) => Promise<GroundedSearchResult>;
+  groundedPlaceSearch: (request: PlaceSearchRequest) => Promise<PlaceSearchResult>;
   requestSensitiveActionCode: (
     action: SensitiveActionId,
   ) => Promise<SensitiveActionCodeRequest>;
@@ -98,6 +106,10 @@ export type PublicUserContextValue = {
     subscriptionId: string;
     proposalAction: "cancel" | "review";
     reason?: string | null;
+  }) => Promise<void>;
+  createAgentProposal: (input: {
+    proposalType: "subscription" | "bill";
+    payload: Record<string, unknown>;
   }) => Promise<void>;
   proposeBillAction: (input: {
     merchant: string;

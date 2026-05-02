@@ -6,8 +6,10 @@ import {
   Camera,
   Image as ImageIcon,
   Loader2,
+  MapPin,
   Mic,
   MicOff,
+  Search,
   Send,
   Sparkles,
   TrendingUp,
@@ -24,7 +26,8 @@ import { usePublicUser } from "@/context/PublicUserContext";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import HealthScoreGauge from "@/components/HealthScoreGauge";
-import type { MediaAnalysisRequest } from "@/lib/evaContracts";
+import BetaBadge from "@/components/BetaBadge";
+import type { GroundedSearchResult, MediaAnalysisRequest, PlaceSearchResult } from "@/lib/evaContracts";
 
 const quickActions = [
   { label: "Log spending", prompt: "I spent $12 on lunch and $5 on coffee today", icon: Wallet },
@@ -54,12 +57,32 @@ type SpeechRecognitionLike = {
   stop: () => void;
 };
 
-function BetaBadge() {
-  return (
-    <span className="rounded-full border border-amber-300/70 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-amber-700 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-200">
-      Beta
-    </span>
-  );
+function formatGroundedSearch(result: GroundedSearchResult) {
+  const citations = result.citations.length
+    ? `\n\nSources:\n${result.citations.map((citation) => `- [${citation.title}](${citation.url})`).join("\n")}`
+    : "\n\n_No citations were returned. Treat this as a low-confidence Beta answer._";
+
+  return `**Beta Google-grounded answer**\n\n${result.answer}\n\n_Confidence: ${result.confidence}. Fresh as of ${new Date(result.freshness_timestamp).toLocaleString()}._${citations}`;
+}
+
+function formatPlaceSearch(result: PlaceSearchResult) {
+  const places = result.places.length
+    ? `\n\nPlaces:\n${result.places.map((place) => {
+        const details = [place.rating ? `${place.rating}/5` : null, place.price_level].filter(Boolean).join(" · ");
+        const link = place.maps_url ? ` ([Map](${place.maps_url}))` : "";
+        return `- ${place.name}${details ? ` — ${details}` : ""}${place.address ? `, ${place.address}` : ""}${link}`;
+      }).join("\n")}`
+    : "";
+
+  return `**Beta Google Maps lookup**\n\n${result.finance_aware_summary}\n\n_Confidence: ${result.confidence}. Fresh as of ${new Date(result.freshness_timestamp).toLocaleString()}._${places}`;
+}
+
+function shouldUsePlaceSearch(text: string) {
+  return /\b(near me|nearby|map|maps|where can i buy|restaurant|store|shop|merchant|supermarket|location|places?)\b/i.test(text);
+}
+
+function shouldUseGroundedSearch(text: string) {
+  return /\b(latest|real[- ]?time|today|current|search|google|compare|news|price of|which is better)\b/i.test(text);
 }
 
 function formatMediaInsight(result: Awaited<ReturnType<ReturnType<typeof usePublicUser>["analyzeMedia"]>>) {
@@ -121,7 +144,7 @@ function extractVideoFrame(file: File) {
 
 export default function Chat() {
   const location = useLocation();
-  const { analyzeMedia, checkAffordability, refresh } = usePublicUser();
+  const { analyzeMedia, checkAffordability, groundedGoogleSearch, groundedPlaceSearch, refresh } = usePublicUser();
   const [messages, setMessages] = useState<Msg[]>([]);
   const [entries, setEntries] = useState<ChatEntry[]>([]);
   const [input, setInput] = useState("");
@@ -230,6 +253,57 @@ export default function Chat() {
       return;
     }
 
+    if (shouldUsePlaceSearch(trimmed)) {
+      try {
+        const result = await groundedPlaceSearch({
+          query: trimmed,
+          requested_purpose: "merchant/place lookup for finance-aware decision",
+          max_results: 5,
+        });
+        const assistantMsg: Msg = { role: "assistant", content: formatPlaceSearch(result) };
+        setMessages((prev) => [...prev, assistantMsg]);
+        addEntry({ type: "msg", msg: assistantMsg });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Maps lookup failed.";
+        toast.error(message);
+        const assistantMsg: Msg = {
+          role: "assistant",
+          content: `I could not use Google Maps just now. ${message} You can still tell me the item and price, and I will help with affordability from your EVA finances.`,
+        };
+        setMessages((prev) => [...prev, assistantMsg]);
+        addEntry({ type: "msg", msg: assistantMsg });
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
+    if (shouldUseGroundedSearch(trimmed)) {
+      try {
+        const result = await groundedGoogleSearch({
+          query: trimmed,
+          user_intent: "real-time finance-aware chat answer",
+          finance_context_mode: "summary",
+          require_citations: true,
+        });
+        const assistantMsg: Msg = { role: "assistant", content: formatGroundedSearch(result) };
+        setMessages((prev) => [...prev, assistantMsg]);
+        addEntry({ type: "msg", msg: assistantMsg });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Search grounding failed.";
+        toast.error(message);
+        const assistantMsg: Msg = {
+          role: "assistant",
+          content: `I could not use live Google Search just now. ${message} I will keep my answer grounded in your stored EVA data and avoid guessing current facts.`,
+        };
+        setMessages((prev) => [...prev, assistantMsg]);
+        addEntry({ type: "msg", msg: assistantMsg });
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
     let assistantSoFar = "";
 
     const upsertAssistant = (chunk: string) => {
@@ -268,7 +342,7 @@ export default function Chat() {
       toast.error("Connection failed. Please try again.");
       setIsLoading(false);
     }
-  }, [addEntry, checkAffordability, isLoading, messages, parseAffordabilityPrompt, refresh]);
+  }, [addEntry, checkAffordability, groundedGoogleSearch, groundedPlaceSearch, isLoading, messages, parseAffordabilityPrompt, refresh]);
 
   const analyzeMediaRequest = useCallback(async (request: MediaAnalysisRequest, userLabel: string) => {
     if (isLoading) return;
@@ -619,6 +693,12 @@ export default function Chat() {
             >
               {isListening ? <MicOff className="h-4 w-4" aria-hidden="true" /> : <Mic className="h-4 w-4" aria-hidden="true" />}
               Voice <BetaBadge />
+            </button>
+            <button type="button" onClick={() => void send(`Search Google for: ${input || "current prices and finance-safe options"}`)} disabled={isLoading} className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-xs font-medium transition hover:bg-secondary disabled:opacity-50" aria-label="Use beta Google Search grounding">
+              <Search className="h-4 w-4" aria-hidden="true" /> Search <BetaBadge />
+            </button>
+            <button type="button" onClick={() => void send(`Find places on Google Maps for: ${input || "nearby merchants"}`)} disabled={isLoading} className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-xs font-medium transition hover:bg-secondary disabled:opacity-50" aria-label="Use beta Google Maps grounding">
+              <MapPin className="h-4 w-4" aria-hidden="true" /> Maps <BetaBadge />
             </button>
             <button type="button" onClick={() => imageInputRef.current?.click()} className="inline-flex items-center gap-2 rounded-xl border border-border bg-background px-3 py-2 text-xs font-medium transition hover:bg-secondary" aria-label="Upload photo for beta analysis">
               <ImageIcon className="h-4 w-4" aria-hidden="true" /> Photo <BetaBadge />

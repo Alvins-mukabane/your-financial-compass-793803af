@@ -26,15 +26,20 @@ import {
   approveRequest as approveWorkspaceRequest,
   dispatchApprovedRequest as dispatchWorkspaceApprovedRequest,
   getReceiptForwardingAddress as getWorkspaceReceiptForwardingAddress,
+  groundedGoogleSearch as runWorkspaceGroundedGoogleSearch,
+  groundedPlaceSearch as runWorkspaceGroundedPlaceSearch,
   importCsvTransactions as importWorkspaceCsvTransactions,
   markNotificationRead as markWorkspaceNotificationRead,
+  createAgentProposal as createWorkspaceAgentProposal,
   proposeBillAction as proposeWorkspaceBillAction,
   proposeSubscriptionAction as proposeWorkspaceSubscriptionAction,
   reconcileExecutionResult as reconcileWorkspaceExecutionResult,
   rejectRequest as rejectWorkspaceRequest,
   requestSensitiveActionCode as requestWorkspaceSensitiveActionCode,
   reviewDraftTransaction as reviewWorkspaceDraftTransaction,
+  runAgentCycle as runWorkspaceAgentCycle,
   runAgentPlanner as runWorkspaceAgentPlanner,
+  runRecoveryAgent as runWorkspaceRecoveryAgent,
   saveBudgetLimit,
   saveFinancialEntry,
   saveGoal,
@@ -380,6 +385,8 @@ export function PublicUserProvider({ children }: { children: ReactNode }) {
       updateProfile: async (payload) => runMutation(() => updateWorkspaceProfile(payload)),
       updateAgentMode: async (input) => runMutation(() => updateWorkspaceAgentMode(input)),
       runAgentPlanner: async () => runMutation(() => runWorkspaceAgentPlanner()),
+      runAgentCycle: async (mode = "manual") => runMutation(() => runWorkspaceAgentCycle(mode)),
+      runRecoveryAgent: async (reason) => runMutation(() => runWorkspaceRecoveryAgent(reason)),
       saveGoal: async (goal) => runMutation(() => saveGoal(goal)),
       deleteGoal: async (goalId) => runMutation(() => deleteGoal(goalId)),
       saveBudgetLimit: async (limit) => runMutation(() => saveBudgetLimit(limit)),
@@ -396,6 +403,8 @@ export function PublicUserProvider({ children }: { children: ReactNode }) {
       analyzeReceiptImage: async (imageDataUrl, fileName) =>
         runMutation(() => analyzeWorkspaceReceiptImage(imageDataUrl, fileName)),
       analyzeMedia: async (request) => analyzeWorkspaceMedia(request),
+      groundedGoogleSearch: async (request) => runWorkspaceGroundedGoogleSearch(request),
+      groundedPlaceSearch: async (request) => runWorkspaceGroundedPlaceSearch(request),
       requestSensitiveActionCode: async (action) =>
         requestWorkspaceSensitiveActionCode(action),
       verifySensitiveActionCode: async (input) =>
@@ -404,6 +413,8 @@ export function PublicUserProvider({ children }: { children: ReactNode }) {
         getWorkspaceReceiptForwardingAddress(securityVerificationId),
       proposeSubscriptionAction: async (input) =>
         runMutation(() => proposeWorkspaceSubscriptionAction(input)),
+      createAgentProposal: async (input) =>
+        runMutation(() => createWorkspaceAgentProposal(input)),
       proposeBillAction: async (input) =>
         runMutation(() => proposeWorkspaceBillAction(input)),
       approveRequest: async (input) =>

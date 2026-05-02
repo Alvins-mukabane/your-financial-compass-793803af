@@ -13,9 +13,9 @@ export function getEvaGatewayUrl() {
 }
 
 export const EVA_MODELS = {
-  extraction: Deno.env.get("EVA_MODEL_EXTRACTION") ?? "google/gemini-2.0-flash",
-  conversation: Deno.env.get("EVA_MODEL_CONVERSATION") ?? "google/gemini-2.0-flash",
-  planning: Deno.env.get("EVA_MODEL_PLANNING") ?? "google/gemini-2.0-pro-exp-02-15",
+  extraction: Deno.env.get("EVA_MODEL_EXTRACTION") ?? "google/gemini-2.5-flash",
+  conversation: Deno.env.get("EVA_MODEL_CONVERSATION") ?? "google/gemini-2.5-flash",
+  planning: Deno.env.get("EVA_MODEL_PLANNING") ?? "google/gemini-2.5-pro",
 } as const;
 
 export function getEvaGatewayApiKey() {

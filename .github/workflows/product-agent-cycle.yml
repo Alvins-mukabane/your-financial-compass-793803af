@@ -1,0 +1,27 @@
+name: Product Agent Cycle
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 */6 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  run-agent-cycle:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call protected EVA agent cycle
+        env:
+          EVA_AGENT_CYCLE_URL: ${{ secrets.EVA_AGENT_CYCLE_URL }}
+          EVA_AGENT_SCHEDULE_SECRET: ${{ secrets.EVA_AGENT_SCHEDULE_SECRET }}
+        run: |
+          if [ -z "$EVA_AGENT_CYCLE_URL" ] || [ -z "$EVA_AGENT_SCHEDULE_SECRET" ]; then
+            echo "Agent cycle secrets are not configured; skipping scheduled run."
+            exit 0
+          fi
+          curl --fail-with-body -X POST "$EVA_AGENT_CYCLE_URL" \
+            -H "content-type: application/json" \
+            -H "x-eva-agent-secret: $EVA_AGENT_SCHEDULE_SECRET" \
+            --data '{"mode":"scheduled"}'

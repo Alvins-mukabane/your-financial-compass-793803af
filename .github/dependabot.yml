@@ -1,0 +1,23 @@
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/apps/web"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      web-runtime:
+        patterns:
+          - "@vitejs/*"
+          - "vite"
+          - "react"
+          - "react-dom"
+      web-testing:
+        patterns:
+          - "@playwright/*"
+          - "vitest"
+          - "@testing-library/*"
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"

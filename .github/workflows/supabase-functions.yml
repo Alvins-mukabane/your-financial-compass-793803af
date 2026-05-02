@@ -1,0 +1,30 @@
+name: Supabase Functions
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  deno-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Setup Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Check finance-core
+        run: deno check supabase/functions/finance-core/index.ts
+      - name: Check agent-cycle
+        run: deno check supabase/functions/agent-cycle/index.ts
+      - name: Check launch intelligence functions
+        run: |
+          deno check supabase/functions/generate-forecast/index.ts
+          deno check supabase/functions/generate-savings-plan/index.ts
+          deno check supabase/functions/generate-shopping-advice/index.ts

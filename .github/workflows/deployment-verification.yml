@@ -1,0 +1,27 @@
+name: Deployment Verification
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "12 5 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  verify-production-routes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify EVA SPA routes return HTML
+        env:
+          EVA_PRODUCTION_URL: ${{ vars.EVA_PRODUCTION_URL || 'https://eva.useaima.com' }}
+        run: |
+          set -euo pipefail
+          for route in / /auth /dashboard /settings /transactions /financial-statement /approvals /action-history; do
+            url="$EVA_PRODUCTION_URL$route"
+            status=$(curl -L -s -o /tmp/eva-route.html -w "%{http_code}" "$url")
+            content_type=$(curl -L -s -I "$url" | tr -d '\r' | awk 'BEGIN{IGNORECASE=1}/^content-type:/{print $2; exit}')
+            echo "$route -> $status $content_type"
+            test "$status" = "200"
+            grep -qi "text/html" <<< "$content_type"
+          done

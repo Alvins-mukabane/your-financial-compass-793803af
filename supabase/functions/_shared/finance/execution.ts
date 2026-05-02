@@ -1,7 +1,9 @@
 import { createAdminClient } from "./db.ts";
 import { consumeSensitiveActionVerification } from "./security.ts";
 import type {
+  AgentKind,
   AgentMode,
+  AgentRunMode,
   ExecutionDispatchStatus,
   ExecutionIntent,
   ExecutionProvider,
@@ -28,9 +30,9 @@ function toMonthlyImpact(subscription: FinanceSubscription) {
     : Number(subscription.price);
 }
 
-async function logAgentTask(input: {
+export async function logAgentTask(input: {
   userId: string;
-  taskType: string;
+  taskType: AgentKind | string;
   reason: string;
   inputPayload: Record<string, unknown>;
   outputPayload: Record<string, unknown>;
@@ -332,7 +334,7 @@ export async function proposeSubscriptionAction(
 
   await logAgentTask({
     userId,
-    taskType: "execution_proposal",
+    taskType: "planner",
     reason: title,
     inputPayload: requestPayload,
     outputPayload: { approval_request_id: approvalRequest.id },
@@ -399,7 +401,7 @@ export async function proposeBillAction(
 
   await logAgentTask({
     userId,
-    taskType: "execution_proposal",
+    taskType: "planner",
     reason: title,
     inputPayload: requestPayload,
     outputPayload: { approval_request_id: approvalRequest.id },
@@ -470,7 +472,7 @@ export async function approveRequest(
 
   await logAgentTask({
     userId,
-    taskType: "approval_decision",
+    taskType: "audit",
     reason: approvalRequest.title,
     inputPayload: {
       approval_request_id: approvalRequest.id,
@@ -522,7 +524,7 @@ Rejected reason: ${rejectionReason}`
 
   await logAgentTask({
     userId,
-    taskType: "approval_decision",
+    taskType: "audit",
     reason: approvalRequest.title,
     inputPayload: {
       approval_request_id: approvalRequest.id,
@@ -686,7 +688,7 @@ export async function updateAgentMode(
 
   await logAgentTask({
     userId,
-    taskType: "agent_mode_update",
+    taskType: "audit",
     reason: `Agent mode changed to ${agentMode}`,
     inputPayload: payload,
     outputPayload: { agent_mode: agentMode, autopilot_high_risk_enabled: allowHighRisk },
@@ -775,7 +777,7 @@ export async function runAgentPlanner(userId: string) {
 
   await logAgentTask({
     userId,
-    taskType: "agent_planner",
+    taskType: "planner",
     reason:
       agentMode === "autopilot"
         ? "Autopilot scanned for safe proposal opportunities."
@@ -791,6 +793,130 @@ export async function runAgentPlanner(userId: string) {
     suggested,
     created_approval_request_ids: created,
   };
+}
+
+export async function createAgentProposal(
+  userId: string,
+  payload: Record<string, unknown>,
+) {
+  const proposalType = parseString(payload.proposal_type);
+  const proposalPayload = safeObject(payload.proposal);
+  const taskReason = parseString(payload.reason, "Agent-created proposal request");
+
+  if (proposalType === "subscription") {
+    const proposal = await proposeSubscriptionAction(userId, proposalPayload);
+    await logAgentTask({
+      userId,
+      taskType: "proposal_autopilot",
+      reason: taskReason,
+      inputPayload: payload,
+      outputPayload: { linked_approval_request_ids: [proposal.id] },
+    });
+    return proposal;
+  }
+
+  if (proposalType === "bill") {
+    const proposal = await proposeBillAction(userId, proposalPayload);
+    await logAgentTask({
+      userId,
+      taskType: "proposal_autopilot",
+      reason: taskReason,
+      inputPayload: payload,
+      outputPayload: { linked_approval_request_ids: [proposal.id] },
+    });
+    return proposal;
+  }
+
+  throw new Error("Choose a supported proposal type before asking EVA to create it.");
+}
+
+export async function runRecoveryAgent(userId: string, reason = "Recovery check") {
+  const admin = createAdminClient();
+  const [profileResult, importsResult, draftsResult, failedReceiptsResult] = await Promise.all([
+    admin.from("finance_profiles").select("onboarding_completed, updated_at").eq("user_id", userId).maybeSingle(),
+    admin.from("finance_import_jobs").select("id, source, status, error_message, created_at").eq("user_id", userId).eq("status", "failed").order("created_at", { ascending: false }).limit(5),
+    admin.from("finance_draft_transactions").select("id, merchant, amount, created_at").eq("user_id", userId).eq("status", "pending").order("created_at", { ascending: false }).limit(10),
+    admin.from("finance_execution_receipts").select("id, title, dispatch_status, status, created_at").eq("user_id", userId).eq("dispatch_status", "dispatch_failed").order("created_at", { ascending: false }).limit(5),
+  ]);
+
+  if (profileResult.error) throw profileResult.error;
+  if (importsResult.error) throw importsResult.error;
+  if (draftsResult.error) throw draftsResult.error;
+  if (failedReceiptsResult.error) throw failedReceiptsResult.error;
+
+  const findings: Array<{ type: string; title: string; body: string }> = [];
+  const profile = profileResult.data as Pick<FinanceProfile, "onboarding_completed"> | null;
+  if (!profile?.onboarding_completed) {
+    findings.push({
+      type: "onboarding_recovery",
+      title: "Finish onboarding",
+      body: "Your EVA workspace is not fully set up yet. Finish onboarding so dashboard, statements, and insights use the same finance profile.",
+    });
+  }
+
+  for (const job of importsResult.data ?? []) {
+    findings.push({
+      type: "import_recovery",
+      title: "Import needs attention",
+      body: `${job.source} import failed${job.error_message ? `: ${job.error_message}` : "."} Try again or contact support if it repeats.`,
+    });
+  }
+
+  if ((draftsResult.data ?? []).length > 0) {
+    findings.push({
+      type: "draft_review_recovery",
+      title: "Draft transactions are waiting",
+      body: `You have ${(draftsResult.data ?? []).length} imported draft transaction${(draftsResult.data ?? []).length === 1 ? "" : "s"} waiting for review.`,
+    });
+  }
+
+  for (const receipt of failedReceiptsResult.data ?? []) {
+    findings.push({
+      type: "execution_recovery",
+      title: "Action dispatch needs review",
+      body: `${receipt.title} could not be dispatched automatically. EVA kept it as an auditable manual action.`,
+    });
+  }
+
+  if (findings.length > 0) {
+    await admin.from("notifications").insert(findings.map((finding) => ({
+      user_id: userId,
+      type: finding.type,
+      title: finding.title,
+      body: finding.body,
+    })));
+  }
+
+  await logAgentTask({
+    userId,
+    taskType: "recovery",
+    reason,
+    inputPayload: { reason },
+    outputPayload: { findings },
+  });
+
+  return { findings };
+}
+
+export async function runAgentCycle(
+  userId: string,
+  mode: AgentRunMode = "manual",
+) {
+  const planner = await runAgentPlanner(userId);
+  const recovery = await runRecoveryAgent(userId, `Agent cycle recovery pass (${mode})`);
+
+  await logAgentTask({
+    userId,
+    taskType: "audit",
+    reason: `Agent cycle completed in ${mode} mode`,
+    inputPayload: { mode },
+    outputPayload: {
+      planner_created_approval_request_ids: planner.created_approval_request_ids,
+      recovery_findings_count: recovery.findings.length,
+    },
+  });
+
+  return { mode, planner, recovery };
 }
 
 export async function dispatchApprovedRequest(

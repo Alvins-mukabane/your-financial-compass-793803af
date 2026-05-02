@@ -3,6 +3,7 @@ import { createAdminClient } from "./db.ts";
 import { buildAffordabilityResult } from "./intelligence.ts";
 import {
   approveRequest,
+  createAgentProposal,
   dispatchApprovedRequest,
   getApprovalRequest,
   listActionHistory,
@@ -12,10 +13,13 @@ import {
   recordExecutionReceipt,
   reconcileExecutionResult,
   rejectRequest,
+  runAgentCycle,
   runAgentPlanner,
+  runRecoveryAgent,
   syncExecutionReceipt,
   updateAgentMode,
 } from "./execution.ts";
+import { groundedGoogleSearch, groundedPlaceSearch } from "./grounding.ts";
 import {
   analyzeMedia as analyzeMediaImport,
   analyzeReceiptImage as analyzeReceiptImageImport,
@@ -246,6 +250,25 @@ export async function handleFinanceCoreAction(params: {
     return buildBootstrap(user.id, user.email);
   }
 
+  if (action === "run_agent_cycle") {
+    await runAgentCycle(
+      user.id,
+      body.mode === "scheduled"
+        ? "scheduled"
+        : body.mode === "autopilot"
+          ? "autopilot"
+          : body.mode === "assisted"
+            ? "assisted"
+            : "manual",
+    );
+    return buildBootstrap(user.id, user.email);
+  }
+
+  if (action === "run_recovery_agent") {
+    await runRecoveryAgent(user.id, typeof body.reason === "string" ? body.reason : "Manual recovery check");
+    return buildBootstrap(user.id, user.email);
+  }
+
   if (action === "save_goal") {
     await saveGoal(user.id, (body.goal as Record<string, unknown>) ?? {});
     return buildBootstrap(user.id, user.email);
@@ -354,6 +377,30 @@ export async function handleFinanceCoreAction(params: {
     });
   }
 
+  if (action === "grounded_google_search") {
+    return groundedGoogleSearch(user.id, {
+      query: String(body.query ?? ""),
+      user_intent: typeof body.user_intent === "string" ? body.user_intent : null,
+      finance_context_mode:
+        body.finance_context_mode === "none" || body.finance_context_mode === "full"
+          ? body.finance_context_mode
+          : "summary",
+      require_citations: body.require_citations !== false,
+    });
+  }
+
+  if (action === "grounded_place_search") {
+    return groundedPlaceSearch(user.id, {
+      query: String(body.query ?? ""),
+      location_bias:
+        body.location_bias && typeof body.location_bias === "object"
+          ? (body.location_bias as { latitude: number; longitude: number; radius_meters?: number })
+          : null,
+      requested_purpose: typeof body.requested_purpose === "string" ? body.requested_purpose : null,
+      max_results: typeof body.max_results === "number" ? body.max_results : 5,
+    });
+  }
+
   if (action === "review_draft_transaction") {
     const draftId = String(body.draft_transaction_id ?? "");
     const decision =
@@ -390,6 +437,15 @@ export async function handleFinanceCoreAction(params: {
       user.id,
       (body.proposal as Record<string, unknown>) ?? {},
     );
+    return buildBootstrap(user.id, user.email);
+  }
+
+  if (action === "create_agent_proposal") {
+    await createAgentProposal(user.id, {
+      proposal_type: body.proposal_type,
+      proposal: (body.proposal as Record<string, unknown>) ?? {},
+      reason: body.reason,
+    });
     return buildBootstrap(user.id, user.email);
   }
 

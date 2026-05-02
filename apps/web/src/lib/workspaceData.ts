@@ -8,9 +8,13 @@ import type {
   BudgetLimit,
   DraftTransaction,
   FinancialEntry,
+  GroundedSearchRequest,
+  GroundedSearchResult,
   MediaAnalysisRequest,
   MediaAnalysisResult,
   OnboardingPayload,
+  PlaceSearchRequest,
+  PlaceSearchResult,
   ReceiptForwardingDetails,
   SensitiveActionCodeRequest,
   SensitiveActionId,
@@ -118,6 +122,14 @@ export async function runAgentPlanner() {
   return invokeWorkspace<BootstrapData>("run_agent_planner");
 }
 
+export async function runAgentCycle(mode: "manual" | "assisted" | "autopilot" | "scheduled" = "manual") {
+  return invokeWorkspace<BootstrapData>("run_agent_cycle", { mode });
+}
+
+export async function runRecoveryAgent(reason?: string) {
+  return invokeWorkspace<BootstrapData>("run_recovery_agent", { reason: reason ?? null });
+}
+
 export async function saveGoal(goal: Partial<UserGoal>) {
   return invokeWorkspace<BootstrapData>("save_goal", { goal });
 }
@@ -176,6 +188,14 @@ export async function analyzeMedia(request: MediaAnalysisRequest) {
   return invokeWorkspace<MediaAnalysisResult>("analyze_media", request);
 }
 
+export async function groundedGoogleSearch(request: GroundedSearchRequest) {
+  return invokeWorkspace<GroundedSearchResult>("grounded_google_search", request);
+}
+
+export async function groundedPlaceSearch(request: PlaceSearchRequest) {
+  return invokeWorkspace<PlaceSearchResult>("grounded_place_search", request);
+}
+
 export async function reviewDraftTransaction(input: {
   draftTransactionId: string;
   decision: "approve" | "reject" | "edit";
@@ -231,6 +251,16 @@ export async function proposeSubscriptionAction(input: {
       proposal_action: input.proposalAction,
       reason: input.reason ?? null,
     },
+  });
+}
+
+export async function createAgentProposal(input: {
+  proposalType: "subscription" | "bill";
+  payload: Record<string, unknown>;
+}) {
+  return invokeWorkspace<BootstrapData>("create_agent_proposal", {
+    proposal_type: input.proposalType,
+    proposal: input.payload,
   });
 }
 

@@ -1,6 +1,8 @@
 export type UserType = "personal" | "business";
 export type FinancialEntryType = "asset" | "liability";
 export type AgentMode = "manual" | "assisted" | "autopilot";
+export type AgentKind = "conversation" | "insight" | "planner" | "proposal_autopilot" | "recovery" | "audit";
+export type AgentRunMode = AgentMode | "scheduled";
 export type ExecutionProvider = "manual_external_account" | "utg";
 export type ExecutionDispatchStatus = "not_dispatched" | "dispatch_pending" | "dispatched" | "dispatch_failed";
 
@@ -394,12 +396,13 @@ export interface OnboardingPayload {
 export interface AgentTask {
   id: string;
   user_id: string;
-  task_type: string;
+  task_type: AgentKind | string;
   status: "queued" | "running" | "completed" | "failed" | "cancelled";
   reason: string;
   input_payload: Record<string, unknown>;
   output_payload: Record<string, unknown>;
   trace_id: string | null;
+  linked_approval_request_ids?: string[];
   created_at: string;
   updated_at: string;
 }
@@ -529,6 +532,44 @@ export interface MonthlyFinanceReport {
   highlights: string[];
   alerts: string[];
   generated_at: string;
+}
+
+export interface GroundedSearchRequest {
+  query: string;
+  user_intent?: string | null;
+  finance_context_mode?: "none" | "summary" | "full";
+  require_citations?: boolean;
+}
+
+export interface GroundedSearchResult {
+  beta: true;
+  answer: string;
+  citations: Array<{ title: string; url: string }>;
+  search_queries: string[];
+  freshness_timestamp: string;
+  confidence: "low" | "medium" | "high";
+}
+
+export interface PlaceSearchRequest {
+  query: string;
+  location_bias?: { latitude: number; longitude: number; radius_meters?: number } | null;
+  requested_purpose?: string | null;
+  max_results?: number;
+}
+
+export interface PlaceSearchResult {
+  beta: true;
+  places: Array<{
+    name: string;
+    address: string | null;
+    maps_url: string | null;
+    website_url: string | null;
+    rating: number | null;
+    price_level: string | null;
+  }>;
+  finance_aware_summary: string;
+  freshness_timestamp: string;
+  confidence: "low" | "medium" | "high";
 }
 
 export interface ToolResult<TData = Record<string, unknown>> {
