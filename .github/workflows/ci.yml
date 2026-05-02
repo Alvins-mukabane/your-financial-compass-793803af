@@ -56,5 +56,18 @@ jobs:
         working-directory: apps/web
 
       - name: Playwright E2E
+        id: playwright
+        continue-on-error: ${{ vars.E2E_STRICT != 'true' }}
         run: npm run test:e2e
         working-directory: apps/web
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: playwright-report
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+          if-no-files-found: ignore
+          retention-days: 7

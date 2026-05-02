@@ -22,7 +22,7 @@ serve(async (req) => {
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const categoryTotals: Record<string, number> = {};
     history.filter(e => new Date(e.date) >= thirtyDaysAgo).forEach(event => {
-      event.items?.forEach(item => {
+      event.items?.forEach((item: { category: string; amount: number }) => {
         categoryTotals[item.category] = (categoryTotals[item.category] || 0) + item.amount;
       });
     });
